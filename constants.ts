@@ -1,0 +1,20 @@
+export const APPWRITE_CONFIG = {
+    endpoint: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'YOUR_APPWRITE_ENDPOINT_HERE',
+
+    projectId: process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || 'YOUR_APPWRITE_PROJECT_ID_HERE',
+
+    databaseId: '68de2d7c003c475d5c24',
+    userSkillsCollectionId: 'userskills',
+
+    messagesCollectionId : "messages",
+    conversationsCollectionId : "conversations"
+
+};
+
+export const APPWRITE_DB_ID = '68de2d7c003c475d5c24';
+export const APPWRITE_PROFILES_COLLECTION_ID = 'profiles';
+export const APPWRITE_STORAGE_BUCKET_ID = 'profile';
+export const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+
+// export const messagesCollectionId = "messages"
+// export const conversationsCollectionId = "conversations"
