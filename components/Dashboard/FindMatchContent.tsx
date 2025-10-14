@@ -111,35 +111,34 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
             const myTeachSkills = currentUserProfile.skillsToTeach;
             const myLearnSkills = currentUserProfile.skillsToLearn;
 
-            // B. OPTIMIZED SERVER-SIDE QUERY
+            // B. Fetch all profiles except current user
             const allProfilesResponse = await databases.listDocuments(
                 APPWRITE_DB_ID,
                 APPWRITE_PROFILES_COLLECTION_ID,
-                [
-                    Query.notEqual('userId', user.$id),
-                    Query.contains('skillsToTeach', ...myLearnSkills),
-                    Query.contains('skillsToLearn', ...myTeachSkills)
-                ]
+                [Query.notEqual('userId', user.$id)]
             );
 
-            const potentialMatchProfiles = allProfilesResponse.documents as unknown as MatchProfile[];
+            const allProfiles = allProfilesResponse.documents as unknown as MatchProfile[];
             const mutualMatches: MutualMatch[] = [];
 
-            // C. CLIENT-SIDE LOGIC for specific skill overlap
-            for (const profile of potentialMatchProfiles) {
+            // C. CLIENT-SIDE LOGIC for mutual match filtering
+            for (const profile of allProfiles) {
                 const matchTeachSkills = profile.skillsToTeach || [];
                 const matchLearnSkills = profile.skillsToLearn || [];
 
                 const learnFromThem = matchTeachSkills.filter(skill => myLearnSkills.includes(skill));
                 const teachThem = matchLearnSkills.filter(skill => myTeachSkills.includes(skill));
 
-                const matchName = profile.name || `User-${profile.userId.substring(0, 8)}`;
+                // Only include if there's mutual benefit
+                if (learnFromThem.length > 0 && teachThem.length > 0) {
+                    const matchName = profile.name || `User-${profile.userId.substring(0, 8)}`;
 
-                mutualMatches.push({
-                    matchProfile: { ...profile, name: matchName },
-                    teachThem,
-                    learnFromThem,
-                });
+                    mutualMatches.push({
+                        matchProfile: { ...profile, name: matchName },
+                        teachThem,
+                        learnFromThem,
+                    });
+                }
             }
 
             setPotentialMatches(mutualMatches);
