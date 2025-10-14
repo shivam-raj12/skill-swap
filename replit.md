@@ -65,10 +65,16 @@ Preferred communication style: Simple, everyday language.
 - **Message Storage**: Messages linked to conversations with sender tracking
 - **Chat Service Hook**: `useChatService` manages message fetching and sending
 - **Conversations Hook**: `useConversations` aggregates conversation summaries with participant details
+- **Conversation Creation**: Conversations are created automatically when users click "Start Swap" in FindMatchContent
+  - System checks if conversation exists in database
+  - Creates new conversation document if it doesn't exist
+  - Displays loading spinner during the check/create process
+  - Prevents duplicate conversations through ID-based existence check
 
 **Pros**:
 - Simple deterministic ID generation prevents duplicate conversations
 - Direct database queries without complex real-time subscriptions initially
+- Proactive conversation creation ensures smooth messaging experience
 
 **Cons**:
 - Currently lacks real-time updates (would benefit from Appwrite Realtime in future)
@@ -84,7 +90,9 @@ Preferred communication style: Simple, everyday language.
 **Matching Algorithm**:
 - Mutual benefit matching: Finds users where skillsToTeach of one matches skillsToLearn of another
 - Bidirectional matching ensures both parties benefit from exchange
+- Client-side filtering for mutual matches (fetch all profiles, filter in JavaScript)
 - Profile filtering excludes current user and caches results for performance
+- Loading state management for individual match cards during conversation initialization
 
 ### Image Upload & Management
 
@@ -146,3 +154,26 @@ RESEND_API_KEY
 ```
 
 Hardcoded fallback IDs present in constants.ts (should be moved to environment variables for production)
+
+### Replit Deployment Configuration
+
+**Development Server**: Configured to run on port 5000 with 0.0.0.0 binding for Replit compatibility
+**Production Deployment**: Autoscale configuration with build and start scripts
+
+**Important CORS Configuration**:
+- Appwrite backend must be configured to allow requests from both:
+  - `http://127.0.0.1:5000` (Replit local)
+  - Your Replit deployment domain (e.g., `https://[your-repl-name].[username].replit.dev`)
+- Configure these in your Appwrite Console → Project Settings → Platforms
+- Add both URLs as Web platforms to prevent CORS errors
+
+## Recent Changes
+
+### December 2024 - Conversation Creation Enhancement
+- **Feature**: Added loading state to "Start Swap" button in FindMatchContent
+- **Functionality**: 
+  - Displays animated spinner while checking/creating conversation
+  - Checks if conversation exists in Appwrite database before navigation
+  - Automatically creates conversation document if it doesn't exist
+  - Button is disabled during loading to prevent duplicate clicks
+- **Technical**: Fixed Query.contains spread operator issue by moving to client-side filtering
