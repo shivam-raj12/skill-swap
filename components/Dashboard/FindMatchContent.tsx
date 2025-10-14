@@ -5,12 +5,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 // import { useRouter } from 'next/navigation'; // 👈 REMOVE useRouter
-import { Client, Databases, Query, Models } from 'appwrite';
+import { Client, Databases, Query, Models, ID } from 'appwrite';
 import { useAuth } from '@/hooks/useAuth';
 import {
     APPWRITE_CONFIG,
     APPWRITE_DB_ID,
-    APPWRITE_PROFILES_COLLECTION_ID
+    APPWRITE_PROFILES_COLLECTION_ID,
+    APPWRITE_CONVERSATIONS_COLLECTION_ID
 } from '@/constants';
 
 // --- Type Definitions (Unchanged) ---
@@ -64,6 +65,7 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
     const [potentialMatches, setPotentialMatches] = useState<MutualMatch[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [loadingMatchId, setLoadingMatchId] = useState<string | null>(null);
 
     // ... (Effects and fetchMatches logic are unchanged) ...
     // ... (omitted for brevity, keep the original logic here) ...
@@ -161,14 +163,46 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
 
 
     // --- HANDLER FOR STARTING SWAP (UPDATED) ---
-    const handleStartSwap = (recipientUserId: string) => {
+    const handleStartSwap = async (recipientUserId: string) => {
         if (!user || !user.$id) return;
 
-        // 1. Generate the unique, sorted conversation ID
-        const conversationId = getConversationId(user.$id, recipientUserId);
+        setLoadingMatchId(recipientUserId);
+        
+        try {
+            // 1. Generate the unique, sorted conversation ID
+            const conversationId = getConversationId(user.$id, recipientUserId);
 
-        // 2. Call the prop function provided by the DashboardMaster
-        onStartSwap(conversationId, recipientUserId);
+            // 2. Check if conversation already exists
+            const existingConversations = await databases.listDocuments(
+                APPWRITE_DB_ID,
+                APPWRITE_CONVERSATIONS_COLLECTION_ID,
+                [Query.equal('$id', conversationId)]
+            );
+
+            // 3. If conversation doesn't exist, create it
+            if (existingConversations.documents.length === 0) {
+                await databases.createDocument(
+                    APPWRITE_DB_ID,
+                    APPWRITE_CONVERSATIONS_COLLECTION_ID,
+                    conversationId,
+                    {
+                        ownerId: user.$id,
+                        otherUserId: recipientUserId,
+                        lastMessageText: 'New conversation started',
+                        lastMessageTimestamp: new Date().toISOString(),
+                        unreadCount: 0
+                    }
+                );
+            }
+
+            // 4. Call the prop function provided by the DashboardMaster
+            onStartSwap(conversationId, recipientUserId);
+        } catch (err) {
+            console.error("Error starting swap:", err);
+            setError("Failed to start conversation. Please try again.");
+        } finally {
+            setLoadingMatchId(null);
+        }
     };
     // ----------------------------------------
 
@@ -231,9 +265,24 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
                             <div className="pt-4">
                                 <button
                                     onClick={() => handleStartSwap(match.matchProfile.userId)} // 👈 Call the new prop-based handler
-                                    className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 transition duration-150"
+                                    disabled={loadingMatchId === match.matchProfile.userId}
+                                    className={`w-full py-3 font-bold rounded-xl shadow-md transition duration-150 flex items-center justify-center ${
+                                        loadingMatchId === match.matchProfile.userId
+                                            ? 'bg-gray-400 cursor-not-allowed'
+                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                    }`}
                                 >
-                                    Start SkillSwap &rarr;
+                                    {loadingMatchId === match.matchProfile.userId ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Starting...
+                                        </>
+                                    ) : (
+                                        <>Start SkillSwap &rarr;</>
+                                    )}
                                 </button>
                             </div>
                         </div>
