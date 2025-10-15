@@ -51,7 +51,9 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
     // Keep track of which conversation is currently displayed
     const [activeConversation, setActiveConversation] = useState<ConversationSummary | null>(null);
     const [inputMessage, setInputMessage] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Figures out the user to show in header (for both temp and real)
     const recipientIdForDetails = activeConversation?.otherUserId || propReceiverId;
@@ -88,9 +90,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
 
     // Always get current conversation ID
     const activeChatToShow = activeConversation;
-    const activeConversationId = activeConversation?.$id == null && activeConversation?.otherUserId == null
-        ? null
-        : getConversationId(activeConversation.ownerId, activeConversation.otherUserId)
+    const activeConversationId = activeChatToShow?.$id || null;
     const receiverId = activeChatToShow?.otherUserId || null;
 
     const {
@@ -112,12 +112,28 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
         }
     }, [activeConversationId, markAsRead]);
 
-    // Handles sending a message, always clears temp only when swap
+    // Handles sending a message
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inputMessage.trim() || !receiverId) return;
-        await sendMessage(inputMessage.trim());
-        setInputMessage('');
+        if (!inputMessage.trim() || !receiverId || isSending) return;
+        
+        setIsSending(true);
+        try {
+            await sendMessage(inputMessage.trim());
+            setInputMessage('');
+        } catch (error) {
+            console.error('Error sending message:', error);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    // Handle keyboard shortcuts
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage(e as any);
+        }
     };
 
     // Handles selecting a conversation from the sidebar
@@ -187,7 +203,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
             </aside>
             {/* Chat Window */}
             <main className="flex-1 flex flex-col">
-                {isLoadingConversations && !activeChatToShow ? (
+                {isLoadingConversations ? (
                     <div className="flex flex-col items-center justify-center h-full text-indigo-500 p-10 bg-gray-50">
                         <h2 className='text-2xl font-bold text-gray-800 animate-pulse'>Loading your inbox...</h2>
                         <p className='mt-2 text-gray-600'>Fetching your latest conversations.</p>
@@ -240,22 +256,29 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                             <button type="button"
                                     className="text-gray-500 hover:text-indigo-600 transition p-3 rounded-full border border-gray-300 bg-white shadow-sm">🖼️
                             </button>
-                            <input
-                                type="text"
-                                placeholder="Type your message here..."
+                            <textarea
+                                ref={textareaRef}
+                                placeholder="Type your message here... (Enter to send, Shift+Enter for new line)"
                                 value={inputMessage}
                                 onChange={(e) => setInputMessage(e.target.value)}
-                                className="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 shadow-inner bg-white"
-                                disabled={isLoadingMessages}
+                                onKeyDown={handleKeyDown}
+                                rows={1}
+                                className="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 shadow-inner bg-white resize-none"
+                                disabled={isSending}
                             />
                             <button
                                 type="submit"
-                                disabled={!inputMessage.trim() || isLoadingMessages}
+                                disabled={!inputMessage.trim() || isSending}
                                 className={`p-3 rounded-xl transition font-bold shadow-lg w-24 flex items-center justify-center 
-                                    ${inputMessage.trim() && !isLoadingMessages ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`
+                                    ${inputMessage.trim() && !isSending ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`
                                 }
                             >
-                                Send
+                                {isSending ? (
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                ) : 'Send'}
                             </button>
                         </form>
                     </>

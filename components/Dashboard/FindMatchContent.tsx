@@ -245,9 +245,9 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
                                         className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤
                                     </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-800">{match.matchProfile.name}</h2>
-                                    <p className="text-sm text-gray-500 line-clamp-1">{match.matchProfile.bio || 'No bio provided.'}</p>
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="text-xl font-bold text-gray-800 truncate">{match.matchProfile.name}</h2>
+                                    <p className="text-sm text-gray-500 truncate">{match.matchProfile.bio || 'No bio provided.'}</p>
                                 </div>
                             </div>
                             <div className="space-y-4">
