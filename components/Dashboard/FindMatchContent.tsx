@@ -176,17 +176,14 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
             const existingConversations = await databases.listDocuments(
                 APPWRITE_DB_ID,
                 APPWRITE_CONVERSATIONS_COLLECTION_ID,
-                [
-                    Query.equal("ownerId", user.$id),
-                    Query.equal("otherUserId", recipientUserId)
-                ]
+                [Query.equal('$id', conversationId)]
             );
 
             if (existingConversations.documents.length === 0) {
                 await databases.createDocument(
                     APPWRITE_DB_ID,
                     APPWRITE_CONVERSATIONS_COLLECTION_ID,
-                    ID.unique(),
+                    conversationId,
                     {
                         ownerId: user.$id,
                         otherUserId: recipientUserId,
