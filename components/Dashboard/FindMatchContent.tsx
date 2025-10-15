@@ -224,7 +224,7 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
                         <div>
                             <p className="font-bold text-indigo-800">Don't worry, we'll keep looking!</p>
                             <p className="text-sm text-indigo-700 mt-1">
-                                We will **send you a notification email** the moment a new mutual match is found, so you
+                                We will send you a notification email the moment a new mutual match is found, so you
                                 won't miss any opportunities.
                             </p>
                         </div>

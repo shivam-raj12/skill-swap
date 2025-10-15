@@ -50,12 +50,11 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
 
     // Keep track of which conversation is currently displayed
     const [activeConversation, setActiveConversation] = useState<ConversationSummary | null>(null);
-    const [tempInitialChat, setTempInitialChat] = useState<ConversationSummary | null>(null);
     const [inputMessage, setInputMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Figures out the user to show in header (for both temp and real)
-    const recipientIdForDetails = activeConversation?.otherUserId || tempInitialChat?.otherUserId || propReceiverId;
+    const recipientIdForDetails = activeConversation?.otherUserId || propReceiverId;
     const {userDetails, isLoading: isLoadingUserDetails} = useUserDetails(recipientIdForDetails);
 
     // Always prefer real conversation if it exists
@@ -64,7 +63,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
         // If no prop passed, load the first available conversation
         if (!propConvId && conversations.length > 0 && !activeConversation) {
             setActiveConversation(conversations[0]);
-            setTempInitialChat(null);
             return;
         }
 
@@ -74,7 +72,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
             if (existingChat) {
                 // Prefer real server copy
                 setActiveConversation(existingChat);
-                setTempInitialChat(null);
                 return;
             }
         }
@@ -87,25 +84,13 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
         userDetails,
         isLoadingConversations,
         activeConversation,
-        tempInitialChat
     ]);
 
-    // When a real conversation for a temp chat ID appears, auto-replace the temp
-    useEffect(() => {
-        if (
-            tempInitialChat &&
-            conversations.some(c => c.$id === tempInitialChat.$id)
-        ) {
-            setActiveConversation(conversations.find(c => c.$id === tempInitialChat.$id)!);
-            setTempInitialChat(null);
-        }
-    }, [conversations, tempInitialChat]);
-
     // Always get current conversation ID
-    const activeChatToShow = activeConversation || tempInitialChat;
+    const activeChatToShow = activeConversation;
     const activeConversationId = activeConversation?.$id == null && activeConversation?.otherUserId == null
         ? null
-        : `${activeConversation?.ownerId ?? ''}_${activeConversation?.otherUserId ?? ''}`
+        : getConversationId(activeConversation.ownerId, activeConversation.otherUserId)
     const receiverId = activeChatToShow?.otherUserId || null;
 
     const {
@@ -143,8 +128,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
     // Sidebar conversations: only real, append temp if not duplicated
     const sidebarChats = [
         ...conversations,
-        // Only add temp if a real one doesn't exist for its ID
-        ...(tempInitialChat && !conversations.some(c => c.$id === tempInitialChat.$id) ? [tempInitialChat] : [])
     ].sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
 
     return (
@@ -165,7 +148,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                     )}
                     {!isLoadingConversations && sidebarChats.length > 0 && (
                         sidebarChats.map((conv) => {
-                            const isTempLoading = conv === tempInitialChat && isLoadingUserDetails;
+                            const isTempLoading = isLoadingUserDetails;
                             return (
                                 <div
                                     key={conv.$id}
@@ -197,7 +180,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                             );
                         })
                     )}
-                    {conversations.length === 0 && !tempInitialChat && !isLoadingConversations && (
+                    {conversations.length === 0 && !isLoadingConversations && (
                         <div className="p-4 text-center text-gray-500 italic">No matches started yet.</div>
                     )}
                 </div>
@@ -214,7 +197,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                         <header
                             className="p-4 border-b bg-gradient-to-r from-white to-indigo-50 shadow-md flex justify-between items-center sticky top-0 z-10">
                             <div>
-                                {isLoadingUserDetails && activeChatToShow === tempInitialChat ? (
+                                {isLoadingUserDetails ? (
                                     <>
                                         <h3 className="text-xl font-bold text-gray-800 animate-pulse">Loading
                                             Match...</h3>

@@ -25,8 +25,7 @@ const NAVIGATION_ITEMS = [
     { id: 'dashboard', icon: "🏠", label: "Dashboard" },
     { id: 'find-match', icon: "🔍", label: "Find Match" },
     { id: 'my-skills', icon: "🛠️", label: "My Skills" },
-    { id: 'messages', icon: "💬", label: "Messages" },
-    { id: 'settings', icon: "⚙️", label: "Settings" },
+    { id: 'messages', icon: "💬", label: "Messages" }
 ];
 
 const LogoutButton: React.FC = () => {
