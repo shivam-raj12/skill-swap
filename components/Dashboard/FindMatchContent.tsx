@@ -2,11 +2,11 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import Link from 'next/link';
 // import { useRouter } from 'next/navigation'; // 👈 REMOVE useRouter
-import { Client, Databases, Query, Models, ID } from 'appwrite';
-import { useAuth } from '@/hooks/useAuth';
+import {Client, Databases, Query, Models, ID} from 'appwrite';
+import {useAuth} from '@/hooks/useAuth';
 import {
     APPWRITE_CONFIG,
     APPWRITE_DB_ID,
@@ -16,14 +16,28 @@ import {
 
 // --- Type Definitions (Unchanged) ---
 // ... (Unchanged Types) ...
-interface AppwriteUser { $id: string; name: string; email: string; emailVerification: boolean; }
+interface AppwriteUser {
+    $id: string;
+    name: string;
+    email: string;
+    emailVerification: boolean;
+}
+
 interface MatchProfile extends Models.Document {
-    userId: string; bio: string; skillsToTeach: string[]; skillsToLearn: string[];
-    profilePictureUrl: string; name: string;
+    userId: string;
+    bio: string;
+    skillsToTeach: string[];
+    skillsToLearn: string[];
+    profilePictureUrl: string;
+    name: string;
 }
+
 interface MutualMatch {
-    matchProfile: MatchProfile; teachThem: string[]; learnFromThem: string[];
+    matchProfile: MatchProfile;
+    teachThem: string[];
+    learnFromThem: string[];
 }
+
 // --- Appwrite Setup (Unchanged) ---
 const client = new Client();
 client
@@ -33,10 +47,11 @@ client
 const databases = new Databases(client);
 
 // --- Helper Component: Skill Tag Display (Unchanged) ---
-const SkillTags: React.FC<{ skills: string[], bgColor: string }> = ({ skills, bgColor }) => (
+const SkillTags: React.FC<{ skills: string[], bgColor: string }> = ({skills, bgColor}) => (
     <div className="flex flex-wrap gap-2">
         {skills.map(skill => (
-            <span key={skill} className={`px-3 py-1 text-xs font-semibold rounded-full ${bgColor} text-gray-800 shadow-sm`}>
+            <span key={skill}
+                  className={`px-3 py-1 text-xs font-semibold rounded-full ${bgColor} text-gray-800 shadow-sm`}>
                 {skill}
             </span>
         ))}
@@ -50,16 +65,13 @@ const getConversationId = (userA: string, userB: string): string => {
     return [userA, userB].sort().join('_');
 };
 
-
-// --- Main Exported Content Component ---
-// 👈 NEW PROP DEFINITION
 interface FindMatchContentProps {
     onStartSwap: (convId: string, receiverId: string) => void;
 }
 
-const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
+const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
     // const router = useRouter(); // 👈 REMOVED ROUTER
-    const { user, isLoading: isAuthLoading } = useAuth() as { user: AppwriteUser | null, isLoading: boolean };
+    const {user, isLoading: isAuthLoading} = useAuth() as { user: AppwriteUser | null, isLoading: boolean };
 
     const [isClient, setIsClient] = useState(false);
     const [potentialMatches, setPotentialMatches] = useState<MutualMatch[]>([]);
@@ -115,31 +127,22 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
             const allProfilesResponse = await databases.listDocuments(
                 APPWRITE_DB_ID,
                 APPWRITE_PROFILES_COLLECTION_ID,
-                [Query.notEqual('userId', user.$id)]
+                [
+                    Query.notEqual('userId', user.$id),
+                    Query.contains("skillsToTeach", myTeachSkills),
+                    Query.contains("skillsToLearn", myLearnSkills)
+                ]
             );
-
             const allProfiles = allProfilesResponse.documents as unknown as MatchProfile[];
-            const mutualMatches: MutualMatch[] = [];
+            const mutualMatches: MutualMatch[] = allProfiles.map(profile => {
+                const matchName = profile.name || `User-${profile.userId.substring(0, 8)}`;
 
-            // C. CLIENT-SIDE LOGIC for mutual match filtering
-            for (const profile of allProfiles) {
-                const matchTeachSkills = profile.skillsToTeach || [];
-                const matchLearnSkills = profile.skillsToLearn || [];
-
-                const learnFromThem = matchTeachSkills.filter(skill => myLearnSkills.includes(skill));
-                const teachThem = matchLearnSkills.filter(skill => myTeachSkills.includes(skill));
-
-                // Only include if there's mutual benefit
-                if (learnFromThem.length > 0 && teachThem.length > 0) {
-                    const matchName = profile.name || `User-${profile.userId.substring(0, 8)}`;
-
-                    mutualMatches.push({
-                        matchProfile: { ...profile, name: matchName },
-                        teachThem,
-                        learnFromThem,
-                    });
-                }
-            }
+                return {
+                    matchProfile: { ...profile, name: matchName },
+                    teachThem: profile.skillsToLearn || [],
+                    learnFromThem: profile.skillsToTeach || [],
+                };
+            });
 
             setPotentialMatches(mutualMatches);
             if (typeof window !== 'undefined') {
@@ -166,24 +169,24 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
         if (!user || !user.$id) return;
 
         setLoadingMatchId(recipientUserId);
-        
+
         try {
-            // 1. Generate the unique, sorted conversation ID
             const conversationId = getConversationId(user.$id, recipientUserId);
 
-            // 2. Check if conversation already exists
             const existingConversations = await databases.listDocuments(
                 APPWRITE_DB_ID,
                 APPWRITE_CONVERSATIONS_COLLECTION_ID,
-                [Query.equal('$id', conversationId)]
+                [
+                    Query.equal("ownerId", user.$id),
+                    Query.equal("otherUserId", recipientUserId)
+                ]
             );
 
-            // 3. If conversation doesn't exist, create it
             if (existingConversations.documents.length === 0) {
                 await databases.createDocument(
                     APPWRITE_DB_ID,
                     APPWRITE_CONVERSATIONS_COLLECTION_ID,
-                    conversationId,
+                    ID.unique(),
                     {
                         ownerId: user.$id,
                         otherUserId: recipientUserId,
@@ -194,7 +197,6 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
                 );
             }
 
-            // 4. Call the prop function provided by the DashboardMaster
             onStartSwap(conversationId, recipientUserId);
         } catch (err) {
             console.error("Error starting swap:", err);
@@ -203,31 +205,27 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
             setLoadingMatchId(null);
         }
     };
-    // ----------------------------------------
 
-
-    // ... (Loading and Error States are unchanged) ...
-    // ... (Render UI is largely unchanged, except for the button handler) ...
-
-    // ... (omitted loading/error states for brevity) ...
-
-    // --- Render Matches UI ---
     return (
         <div className="max-w-7xl mx-auto py-4">
             {/* ... (Header and No Matches State are unchanged) ... */}
 
             {potentialMatches.length === 0 ? (
                 // ... (No Matches UI) ...
-                <div className="p-10 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-xl text-center shadow-lg">
+                <div
+                    className="p-10 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-xl text-center shadow-lg">
                     <p className="text-2xl font-semibold text-gray-700">No Mutual Swaps Found Yet</p>
-                    <p className="text-gray-500 mt-2">Try updating your skills to teach and skills to learn to broaden your search.</p>
+                    <p className="text-gray-500 mt-2">Try updating your skills to teach and skills to learn to broaden
+                        your search.</p>
 
-                    <div className="mt-6 p-4 bg-indigo-100 border-l-4 border-indigo-500 rounded-xl shadow-md max-w-lg mx-auto flex items-start space-x-3">
+                    <div
+                        className="mt-6 p-4 bg-indigo-100 border-l-4 border-indigo-500 rounded-xl shadow-md max-w-lg mx-auto flex items-start space-x-3">
                         <span className="text-indigo-600 text-2xl mt-1">📧</span>
                         <div>
                             <p className="font-bold text-indigo-800">Don't worry, we'll keep looking!</p>
                             <p className="text-sm text-indigo-700 mt-1">
-                                We will **send you a notification email** the moment a new mutual match is found, so you won't miss any opportunities.
+                                We will **send you a notification email** the moment a new mutual match is found, so you
+                                won't miss any opportunities.
                             </p>
                         </div>
                     </div>
@@ -236,12 +234,16 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {potentialMatches.map((match) => (
-                        <div key={match.matchProfile.$id} className="bg-white p-6 rounded-2xl shadow-xl border-t-8 border-indigo-500 flex flex-col space-y-4">
+                        <div key={match.matchProfile.$id}
+                             className="bg-white p-6 rounded-2xl shadow-xl border-t-8 border-indigo-500 flex flex-col space-y-4">
 
                             {/* ... (Profile details and skills) ... */}
                             <div className="flex items-center space-x-4 pb-3 border-b border-gray-100">
-                                <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-300">
-                                    <div className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤</div>
+                                <div
+                                    className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-300">
+                                    <div
+                                        className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤
+                                    </div>
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-800">{match.matchProfile.name}</h2>
@@ -250,12 +252,14 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
                             </div>
                             <div className="space-y-4">
                                 <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                                    <p className="text-md font-semibold text-emerald-700 mb-2 flex items-center">You Learn:</p>
-                                    <SkillTags skills={match.learnFromThem} bgColor="bg-emerald-200" />
+                                    <p className="text-md font-semibold text-emerald-700 mb-2 flex items-center">You
+                                        Learn:</p>
+                                    <SkillTags skills={match.learnFromThem} bgColor="bg-emerald-200"/>
                                 </div>
                                 <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                                    <p className="text-md font-semibold text-indigo-700 mb-2 flex items-center">You Teach:</p>
-                                    <SkillTags skills={match.teachThem} bgColor="bg-indigo-200" />
+                                    <p className="text-md font-semibold text-indigo-700 mb-2 flex items-center">You
+                                        Teach:</p>
+                                    <SkillTags skills={match.teachThem} bgColor="bg-indigo-200"/>
                                 </div>
                             </div>
 
@@ -273,9 +277,12 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({ onStartSwap }) => {
                                 >
                                     {loadingMatchId === match.matchProfile.userId ? (
                                         <>
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10"
+                                                        stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor"
+                                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
                                             Starting...
                                         </>

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useChatService } from '@/hooks/useChatService';
-import { useConversations, ConversationSummary } from '@/hooks/useConversations';
-import { useAuth } from '@/hooks/useAuth';
-import { useUserDetails } from '@/hooks/useUserDetails';
+import React, {useState, useEffect, useRef} from 'react';
+import {useChatService} from '@/hooks/useChatService';
+import {useConversations, ConversationSummary} from '@/hooks/useConversations';
+import {useAuth} from '@/hooks/useAuth';
+import {useUserDetails} from '@/hooks/useUserDetails';
 import Link from 'next/link';
 
 // Helper to generate unique conversation ID (UserAId_UserBId)
@@ -22,7 +22,7 @@ interface MessageBubbleProps {
     isCurrentUser: boolean;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ text, time, isCurrentUser }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({text, time, isCurrentUser}) => {
     const bubbleClass = isCurrentUser
         ? 'bg-indigo-500 text-white self-end rounded-br-none'
         : 'bg-white text-gray-800 self-start rounded-tl-none border border-gray-200 shadow-sm';
@@ -30,14 +30,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ text, time, isCurrentUser
         <div className={`flex flex-col max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass}`}>
             <p className="text-sm break-words whitespace-pre-wrap">{text}</p>
             <span className={`mt-1 text-xs opacity-70 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
             </span>
         </div>
     );
 };
 
-const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) => {
-    const { user } = useAuth();
+const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
+    const {user} = useAuth();
     const currentUserId = user?.$id;
     const propConvId = initialChatData?.convId;
     const propReceiverId = initialChatData?.receiverId;
@@ -46,7 +46,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         ? getConversationId(currentUserId, propReceiverId)
         : null;
 
-    const { conversations, isLoading: isLoadingConversations, error: convError } = useConversations();
+    const {conversations, isLoading: isLoadingConversations, error: convError} = useConversations();
 
     // Keep track of which conversation is currently displayed
     const [activeConversation, setActiveConversation] = useState<ConversationSummary | null>(null);
@@ -56,7 +56,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
 
     // Figures out the user to show in header (for both temp and real)
     const recipientIdForDetails = activeConversation?.otherUserId || tempInitialChat?.otherUserId || propReceiverId;
-    const { userDetails, isLoading: isLoadingUserDetails } = useUserDetails(recipientIdForDetails);
+    const {userDetails, isLoading: isLoadingUserDetails} = useUserDetails(recipientIdForDetails);
 
     // Always prefer real conversation if it exists
     useEffect(() => {
@@ -75,27 +75,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                 // Prefer real server copy
                 setActiveConversation(existingChat);
                 setTempInitialChat(null);
-                return;
-            }
-
-            // Create temp chat only if not already
-            if (userDetails && !existingChat) {
-                const displayBio = userDetails.bio || `Wants to teach ${userDetails.skillsToTeach?.[0] || 'a skill'}.`;
-                const newTempChat = {
-                    $id: safeConvIdFromProps,
-                    ownerId: currentUserId,
-                    otherUserId: propReceiverId,
-                    lastMessageText: `New conversation started about ${propConvId}`,
-                    lastMessageTimestamp: new Date().toISOString(),
-                    unreadCount: 0,
-                    otherUserName: userDetails.name,
-                    otherUserSkill: displayBio,
-                } as ConversationSummary;
-
-                if (!tempInitialChat || tempInitialChat.$id !== newTempChat.$id) {
-                    setTempInitialChat(newTempChat);
-                    setActiveConversation(null);
-                }
                 return;
             }
         }
@@ -124,7 +103,9 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
 
     // Always get current conversation ID
     const activeChatToShow = activeConversation || tempInitialChat;
-    const activeConversationId = activeChatToShow?.$id || null;
+    const activeConversationId = activeConversation?.$id == null && activeConversation?.otherUserId == null
+        ? null
+        : `${activeConversation?.ownerId ?? ''}_${activeConversation?.otherUserId ?? ''}`
     const receiverId = activeChatToShow?.otherUserId || null;
 
     const {
@@ -136,7 +117,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
 
     useEffect(() => {
         if (messagesEndRef.current && messages.length > 0) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            messagesEndRef.current.scrollIntoView({behavior: 'smooth'});
         }
     }, [messages]);
 
@@ -151,13 +132,11 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         e.preventDefault();
         if (!inputMessage.trim() || !receiverId) return;
         await sendMessage(inputMessage.trim());
-        if (tempInitialChat) setTempInitialChat(null);
         setInputMessage('');
     };
 
     // Handles selecting a conversation from the sidebar
     const handleSelectConversation = (conv: ConversationSummary) => {
-        setTempInitialChat(null);
         setActiveConversation(conv);
     };
 
@@ -202,7 +181,8 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                                             {isTempLoading ? 'Loading Name...' : conv.otherUserName}
                                         </p>
                                         {conv.unreadCount > 0 && (
-                                            <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-md">
+                                            <span
+                                                className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-md">
                                                 {conv.unreadCount}
                                             </span>
                                         )}
@@ -231,11 +211,13 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                     </div>
                 ) : activeChatToShow ? (
                     <>
-                        <header className="p-4 border-b bg-gradient-to-r from-white to-indigo-50 shadow-md flex justify-between items-center sticky top-0 z-10">
+                        <header
+                            className="p-4 border-b bg-gradient-to-r from-white to-indigo-50 shadow-md flex justify-between items-center sticky top-0 z-10">
                             <div>
                                 {isLoadingUserDetails && activeChatToShow === tempInitialChat ? (
                                     <>
-                                        <h3 className="text-xl font-bold text-gray-800 animate-pulse">Loading Match...</h3>
+                                        <h3 className="text-xl font-bold text-gray-800 animate-pulse">Loading
+                                            Match...</h3>
                                         <p className="text-sm text-gray-600 font-medium">Bio: Fetching details...</p>
                                     </>
                                 ) : (
@@ -253,9 +235,11 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                         </header>
                         <div className="flex-grow p-6 space-y-4 overflow-y-auto bg-gray-100">
                             {isLoadingMessages ? (
-                                <div className="text-center p-10 text-indigo-600 font-semibold">Loading messages...</div>
+                                <div className="text-center p-10 text-indigo-600 font-semibold">Loading
+                                    messages...</div>
                             ) : messages.length === 0 ? (
-                                <div className="text-center p-10 text-gray-500 italic">Start the conversation! No messages exchanged yet.</div>
+                                <div className="text-center p-10 text-gray-500 italic">Start the conversation! No
+                                    messages exchanged yet.</div>
                             ) : (
                                 messages.map((msg) => (
                                     <MessageBubble
@@ -266,10 +250,13 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                                     />
                                 ))
                             )}
-                            <div ref={messagesEndRef} />
+                            <div ref={messagesEndRef}/>
                         </div>
-                        <form onSubmit={handleSendMessage} className="p-4 border-t bg-white/70 backdrop-blur-sm sticky bottom-0 z-10 flex items-center gap-3">
-                            <button type="button" className="text-gray-500 hover:text-indigo-600 transition p-3 rounded-full border border-gray-300 bg-white shadow-sm">🖼️</button>
+                        <form onSubmit={handleSendMessage}
+                              className="p-4 border-t bg-white/70 backdrop-blur-sm sticky bottom-0 z-10 flex items-center gap-3">
+                            <button type="button"
+                                    className="text-gray-500 hover:text-indigo-600 transition p-3 rounded-full border border-gray-300 bg-white shadow-sm">🖼️
+                            </button>
                             <input
                                 type="text"
                                 placeholder="Type your message here..."
@@ -293,7 +280,8 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 p-10 bg-gray-50">
                         <span className="text-7xl mb-4">💬</span>
                         <h2 className='text-2xl font-bold text-gray-800'>Welcome to your Inbox!</h2>
-                        <p className='mt-2 text-center text-gray-600 max-w-sm'>Select a conversation from the left to start chatting and scheduling your first skill swap session.</p>
+                        <p className='mt-2 text-center text-gray-600 max-w-sm'>Select a conversation from the left to
+                            start chatting and scheduling your first skill swap session.</p>
                     </div>
                 )}
             </main>
