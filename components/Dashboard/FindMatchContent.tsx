@@ -3,8 +3,6 @@
 'use client';
 
 import React, {useState, useEffect, useCallback} from 'react';
-import Link from 'next/link';
-// import { useRouter } from 'next/navigation'; // 👈 REMOVE useRouter
 import {Client, Databases, Query, Models, ID} from 'appwrite';
 import {useAuth} from '@/hooks/useAuth';
 import {
@@ -79,8 +77,6 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
     const [error, setError] = useState<string | null>(null);
     const [loadingMatchId, setLoadingMatchId] = useState<string | null>(null);
 
-    // ... (Effects and fetchMatches logic are unchanged) ...
-    // ... (omitted for brevity, keep the original logic here) ...
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const cachedData = localStorage.getItem('cachedMatches');
@@ -176,14 +172,16 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
             const existingConversations = await databases.listDocuments(
                 APPWRITE_DB_ID,
                 APPWRITE_CONVERSATIONS_COLLECTION_ID,
-                [Query.equal('$id', conversationId)]
+                [
+                    Query.equal("ownerId", user.$id)
+                ]
             );
 
             if (existingConversations.documents.length === 0) {
                 await databases.createDocument(
                     APPWRITE_DB_ID,
                     APPWRITE_CONVERSATIONS_COLLECTION_ID,
-                    conversationId,
+                    ID.unique(),
                     {
                         ownerId: user.$id,
                         otherUserId: recipientUserId,

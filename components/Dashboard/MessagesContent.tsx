@@ -2,15 +2,13 @@
 
 import React, {useState, useEffect, useRef} from 'react';
 import {useChatService} from '@/hooks/useChatService';
-import {useConversations, ConversationSummary} from '@/hooks/useConversations';
+// UPDATED: Import getConversationId and ConversationSummary from the conversations hook
+import {useConversations, ConversationSummary, getConversationId} from '@/hooks/useConversations';
 import {useAuth} from '@/hooks/useAuth';
 import {useUserDetails} from '@/hooks/useUserDetails';
 import Link from 'next/link';
 
-// Helper to generate unique conversation ID (UserAId_UserBId)
-const getConversationId = (userA: string, userB: string): string => {
-    return [userA, userB].sort().join('_');
-};
+// REMOVED local definition of getConversationId - now imported from useConversations
 
 interface MessagesContentProps {
     initialChatData: { convId: string; receiverId: string } | null;
@@ -42,6 +40,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
     const propConvId = initialChatData?.convId;
     const propReceiverId = initialChatData?.receiverId;
 
+    // This now uses the imported and consistent getConversationId
     const safeConvIdFromProps = (currentUserId && propReceiverId)
         ? getConversationId(currentUserId, propReceiverId)
         : null;
@@ -70,6 +69,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
 
         // Handle the "Start Swap" case
         if (propConvId && propReceiverId && safeConvIdFromProps) {
+            // Because File 3 now forces $id to be the sorted ID, this check works reliably.
             const existingChat = conversations.find(conv => conv.$id === safeConvIdFromProps);
             if (existingChat) {
                 // Prefer real server copy
@@ -90,6 +90,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
 
     // Always get current conversation ID
     const activeChatToShow = activeConversation;
+    // This $id is now guaranteed to be the sorted ID, which is passed to useChatService.
     const activeConversationId = activeChatToShow?.$id || null;
     const receiverId = activeChatToShow?.otherUserId || null;
 
@@ -116,7 +117,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputMessage.trim() || !receiverId || isSending) return;
-        
+
         setIsSending(true);
         try {
             await sendMessage(inputMessage.trim());
@@ -167,7 +168,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                             const isTempLoading = isLoadingUserDetails;
                             return (
                                 <div
-                                    key={conv.$id}
+                                    key={conv.$id} // This is the consistent sorted ID
                                     onClick={() => handleSelectConversation(conv)}
                                     className={`p-4 border-b cursor-pointer transition duration-200 flex flex-col ${
                                         activeChatToShow?.$id === conv.$id

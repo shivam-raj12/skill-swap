@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Client, Databases, Query, Models } from 'appwrite';
-import { useAuth } from '@/hooks/useAuth';
-import { APPWRITE_CONFIG, APPWRITE_DB_ID, APPWRITE_CONVERSATIONS_COLLECTION_ID, APPWRITE_PROFILES_COLLECTION_ID } from '@/constants';
+import {useState, useEffect} from 'react';
+import {Client, Databases, Query, Models} from 'appwrite';
+import {useAuth} from '@/hooks/useAuth';
+import {
+    APPWRITE_CONFIG,
+    APPWRITE_DB_ID,
+    APPWRITE_CONVERSATIONS_COLLECTION_ID,
+    APPWRITE_PROFILES_COLLECTION_ID
+} from '@/constants';
 
 // --- Appwrite Setup ---
 const client = new Client();
@@ -24,7 +29,10 @@ export interface ConversationSummary extends ConversationDocument {
     otherUserSkill: string;
 }
 
-const getConversationId = (userA: string, userB: string): string => {
+// Helper to generate the unique, sorted conversation ID (UserAId_UserBId)
+// This is now exported so other files (like MessagesContent) can use it too.
+export const getConversationId = (userA: string, userB: string): string => {
+    // Sorts the two user IDs alphabetically and joins them
     return [userA, userB].sort().join('_');
 };
 
@@ -44,13 +52,13 @@ const fetchUserProfile = async (userId: string) => {
         };
     } catch (error) {
         console.error("Error fetching profile for:", userId, error);
-        return { name: `User ${userId.substring(0, 5)}`, bio: 'Error', displaySkill: 'Error loading bio' };
+        return {name: `User ${userId.substring(0, 5)}`, bio: 'Error', displaySkill: 'Error loading bio'};
     }
 };
 
 
 export const useConversations = () => {
-    const { user } = useAuth();
+    const {user} = useAuth();
     const currentUserId = user?.$id;
 
     const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -67,10 +75,7 @@ export const useConversations = () => {
                 APPWRITE_DB_ID,
                 APPWRITE_CONVERSATIONS_COLLECTION_ID,
                 [
-                    Query.or([
-                        Query.equal('ownerId', currentUserId),
-                        Query.equal('otherUserId', currentUserId)
-                    ])
+                    Query.equal('ownerId', currentUserId),
                 ]
             );
 
@@ -80,16 +85,24 @@ export const useConversations = () => {
 
             for (const doc of fetchedDocs) {
                 const recipientId = doc.ownerId === currentUserId ? doc.otherUserId : doc.ownerId;
+
+                // Calculate the universally unique, sorted conversation ID
                 const uniqueChatKey = getConversationId(currentUserId, recipientId);
 
+                // Handle potential duplicate documents from Appwrite
                 if (uniqueConversationsMap.has(uniqueChatKey)) {
-                    continue;
+                    const existing = uniqueConversationsMap.get(uniqueChatKey)!;
+                    // Keep the conversation with the newest message timestamp
+                    if (new Date(doc.lastMessageTimestamp).getTime() < new Date(existing.lastMessageTimestamp).getTime()) {
+                        continue;
+                    }
                 }
 
                 const profile = await fetchUserProfile(recipientId);
 
                 const summary: ConversationSummary = {
                     ...doc,
+                    $id: uniqueChatKey,
                     otherUserId: recipientId,
                     otherUserName: profile.name,
                     otherUserSkill: profile.displaySkill,
@@ -113,26 +126,89 @@ export const useConversations = () => {
     };
 
 
+
+    // ... (omitting setup and imports for brevity)
+
     useEffect(() => {
-        if (currentUserId) {
-            fetchConversations();
-
-            const unsubscribe = client.subscribe(
-                `databases.${APPWRITE_DB_ID}.collections.${APPWRITE_CONVERSATIONS_COLLECTION_ID}.documents`,
-                () => {
-                    console.log('[useConversations] Detected collection change, refetching conversations');
-                    fetchConversations();
-                }
-            );
-
-            return () => {
-                unsubscribe();
-            };
-        } else {
+        if (!currentUserId) {
             setConversations([]);
             setIsLoading(false);
+            return;
         }
-    }, [currentUserId]);
+
+        fetchConversations();
+
+        const unsubscribe = client.subscribe(
+            `databases.${APPWRITE_DB_ID}.collections.${APPWRITE_CONVERSATIONS_COLLECTION_ID}.documents`,
+            (response: any) => {
+                const updatedDoc = response.payload as ConversationDocument;
+                // Only process documents where this user is the 'owner' in the document
+                if (updatedDoc.ownerId !== currentUserId) {
+                    return;
+                }
+
+                const recipientId =  updatedDoc.otherUserId;
+                const uniqueChatKey = getConversationId(currentUserId, recipientId);
+                const displayUnreadCount = updatedDoc.unreadCount;
+                console.log(displayUnreadCount)
+
+
+                setConversations(prevConversations => {
+                    // 1. Find the existing conversation index
+                    const existingIndex = prevConversations.findIndex(conv => conv.$id === uniqueChatKey);
+
+                    // If the conversation is found, update it
+                    if (existingIndex !== -1) {
+                        const updatedConversations = [...prevConversations];
+                        const existingSummary = updatedConversations[existingIndex];
+
+                        updatedConversations[existingIndex] = {
+                            ...existingSummary,
+                            ...updatedDoc,
+                            $id: uniqueChatKey,
+                            unreadCount: displayUnreadCount,
+                        };
+
+                        // Re-sort the array
+                        updatedConversations.sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
+
+                        return updatedConversations;
+                    }
+
+                    // 2. If it's a *NEW* conversation (not found), fetch the profile asynchronously
+                    const handleNewConversation = async () => {
+                        const profile = await fetchUserProfile(recipientId);
+
+                        const newSummary: ConversationSummary = {
+                            ...updatedDoc,
+                            $id: uniqueChatKey,
+                            otherUserId: recipientId,
+                            otherUserName: profile.name,
+                            otherUserSkill: profile.displaySkill,
+                            unreadCount: displayUnreadCount, // Use the single unread count
+                        };
+
+                        // Use the functional update again to ensure we use the very latest state
+                        setConversations(latestConversations => {
+                            const newConversations = [newSummary, ...latestConversations];
+                            // Re-sort to put it at the top
+                            newConversations.sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
+                            return newConversations;
+                        });
+                    };
+
+                    handleNewConversation(); // Execute the async logic
+
+                    // Since we're handling the update in the async function above,
+                    // we return the previous state here to avoid a synchronous flicker.
+                    // The setConversations call inside handleNewConversation will trigger the re-render.
+                    return prevConversations;
+                });
+            }
+        );
+
+        return () => unsubscribe();
+    }, [currentUserId]); // fetchUserProfile is not a dep because it's stable and not a prop/state.
 
     return {
         conversations,
