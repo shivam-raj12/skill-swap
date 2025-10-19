@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Client, Functions } from 'appwrite';
 import { useAuth } from './useAuth'; // Assuming your useAuth is in the same folder or path
 
-const FUNCTION_ID = 'your_video_session_creator_function_id';
+const FUNCTION_ID = '68f30101003582e25c10';
 
 interface ScheduleDetails {
     startDate: string;
