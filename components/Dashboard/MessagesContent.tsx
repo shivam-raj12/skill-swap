@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-// Assume the following imports exist in your project structure
-import { useChatService } from '@/hooks/useChatService';
-import { useConversations, ConversationSummary, getConversationId } from '@/hooks/useConversations';
-import { useAuth } from '@/hooks/useAuth';
-import { useUserDetails } from '@/hooks/useUserDetails';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
+import {useChatService} from '@/hooks/useChatService';
+import {useConversations, ConversationSummary, getConversationId} from '@/hooks/useConversations';
+import {useAuth} from '@/hooks/useAuth';
+import {useVideoSessionCreator} from '@/hooks/useVideoSessionCreator';
+import {useUserDetails} from '@/hooks/useUserDetails';
 
-// --- Type Definitions for Structured Data ---
 
 const JSON_MEETING_REQUEST_PREFIX = '[MEETING_REQUEST_JSON]';
 
@@ -15,14 +14,9 @@ interface MeetingRequestData {
     time: string;
     startDate: string;
     durationMonths: number;
-    frequency: string; // Could be 'Daily', 'Weekends Only', or comma-separated days (e.g., 'Monday, Wednesday')
+    frequency: string;
 }
 
-// --- Helper Functions ---
-
-/**
- * Checks if a message text is a serialized Meeting Request JSON.
- */
 const parseMeetingRequest = (text: string): MeetingRequestData | null => {
     if (text.startsWith(JSON_MEETING_REQUEST_PREFIX)) {
         try {
@@ -47,7 +41,7 @@ interface MessageBubbleProps {
 }
 
 // Simple plain text bubble component
-const MessageBubble: React.FC<MessageBubbleProps> = ({ text, time, isCurrentUser }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({text, time, isCurrentUser}) => {
     const bubbleClass = isCurrentUser
         ? 'bg-indigo-500 text-white self-end rounded-br-none'
         : 'bg-white text-gray-800 self-start rounded-tl-none border border-gray-200 shadow-sm';
@@ -55,19 +49,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ text, time, isCurrentUser
         <div className={`flex flex-col max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass}`}>
             <p className="text-sm break-words whitespace-pre-wrap">{text}</p>
             <span className={`mt-1 text-xs opacity-70 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
             </span>
         </div>
     );
 };
 
-
-// Updated Component for structured meeting request with design improvements and button fix
 const MeetingRequestBubble: React.FC<
-    MessageBubbleProps & { data: MeetingRequestData; onEdit: (data: MeetingRequestData) => void }
-> = ({ data, time, isCurrentUser, onEdit }) => {
+    MessageBubbleProps & {
+    data: MeetingRequestData;
+    onEdit: (data: MeetingRequestData) => void;
+    senderId: string;
+    conversationId: string;
+}
+> = ({data, time, isCurrentUser, onEdit, senderId, conversationId}) => {
 
-    // Design Improvements: Use a consistent, prominent style for the proposal box
+    // ✅ Use your Appwrite-based custom hook
+    const {createSession, isLoading} = useVideoSessionCreator();
+
     const bubbleClass = isCurrentUser
         ? 'bg-white border-2 border-indigo-500 shadow-xl self-end rounded-br-none'
         : 'bg-white border-2 border-emerald-500 shadow-xl self-start rounded-tl-none';
@@ -76,13 +75,29 @@ const MeetingRequestBubble: React.FC<
     const proposalBoxColor = isCurrentUser ? 'bg-indigo-50 text-indigo-800' : 'bg-emerald-50 text-emerald-800';
 
     const frequencyText = data.frequency.includes(',')
-        ? `Weekly on: ${data.frequency.replace(/, /g, ', ')}` // Clean up spacing
+        ? `Weekly on: ${data.frequency.replace(/, /g, ', ')}`
         : data.frequency;
 
-    // The current status is always "Proposed" since acceptance logic is TBD
     const status = isCurrentUser ? 'Proposed (Awaiting Partner)' : 'New Proposal';
 
-    // Formatting the message content
+    // ✅ Handle Accept Click
+    const handleAccept = async () => {
+        try {
+            const result = await createSession({
+                senderId,
+                conversationId,
+                scheduleDetails: data, // assuming your data matches ScheduleDetails shape
+            });
+
+            console.log('Meeting Created Successfully:', result);
+            alert(`Meeting created! ID: ${result.meetingId}`);
+            // Optionally navigate or update state here
+        } catch (error) {
+            console.error('Failed to create video session:', error);
+            alert((error as Error).message);
+        }
+    };
+
     const content = (
         <div className={`p-4 rounded-lg space-y-3 ${proposalBoxColor}`}>
             <h4 className={`text-xl font-extrabold flex items-center ${titleColor}`}>
@@ -103,13 +118,13 @@ const MeetingRequestBubble: React.FC<
     return (
         <div className={`flex flex-col max-w-sm md:max-w-md p-0 rounded-xl ${bubbleClass}`}>
             {content}
-            <span className={`mt-2 p-2 text-xs opacity-80 ${isCurrentUser ? 'text-right text-indigo-800' : 'text-left text-emerald-800'}`}>
-                Sent at: {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <span
+                className={`mt-2 p-2 text-xs opacity-80 ${isCurrentUser ? 'text-right text-indigo-800' : 'text-left text-emerald-800'}`}>
+                Sent at: {new Date(time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
             </span>
 
             <div className="flex space-x-2 p-2 pt-0">
                 {isCurrentUser ? (
-                    // SENDER: Only see an option to edit/retract their own proposal
                     <button
                         onClick={() => onEdit(data)}
                         className="flex-1 text-sm py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 transition font-semibold shadow-md"
@@ -117,7 +132,6 @@ const MeetingRequestBubble: React.FC<
                         Edit/Resend Proposal
                     </button>
                 ) : (
-                    // RECEIVER (FIXED): See both Edit (for counter-propose) and Accept
                     <>
                         <button
                             onClick={() => onEdit(data)}
@@ -126,11 +140,15 @@ const MeetingRequestBubble: React.FC<
                             Edit
                         </button>
                         <button
-                            // Placeholder for ACCEPT action - will log for now
-                            onClick={() => console.log('Accept clicked, action TBD')}
-                            className="flex-1 text-sm py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-semibold shadow-md"
+                            onClick={handleAccept}
+                            disabled={isLoading}
+                            className={`flex-1 text-sm py-2 rounded-lg font-semibold shadow-md transition ${
+                                isLoading
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                            }`}
                         >
-                            Accept
+                            {isLoading ? 'Starting...' : 'Accept'}
                         </button>
                     </>
                 )}
@@ -140,21 +158,33 @@ const MeetingRequestBubble: React.FC<
 };
 
 
-const MessageBubbleWrapper: React.FC<MessageBubbleProps & { onEdit: (data: MeetingRequestData) => void }> = ({ text, time, isCurrentUser, onEdit }) => {
+const MessageBubbleWrapper: React.FC<
+    MessageBubbleProps & {
+    onEdit: (data: MeetingRequestData) => void;
+    currentUser: string;  // 👈 Add this line
+    convId: string;                // 👈 And this one
+}
+> = ({ text, time, isCurrentUser, onEdit, currentUser, convId }) => {
+
+    // Try parsing the text to check if it's a structured meeting proposal
     const requestData = parseMeetingRequest(text);
 
     if (requestData) {
+        // ✅ If it’s a meeting proposal, render MeetingRequestBubble
         return (
             <MeetingRequestBubble
                 data={requestData}
                 time={time}
                 isCurrentUser={isCurrentUser}
                 onEdit={onEdit}
+                senderId={currentUser} // current user if sender
+                conversationId={convId}
                 text={text}
             />
         );
     }
 
+    // ✅ Otherwise render a normal text message bubble
     return (
         <MessageBubble
             text={text}
@@ -173,12 +203,9 @@ interface ScheduleModalProps {
     initialData: MeetingRequestData | null; // for editing
 }
 
-const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRequest, otherUserName, initialData }) => {
+const ScheduleModal: React.FC<ScheduleModalProps> = ({isOpen, onClose, onSendRequest, otherUserName, initialData}) => {
     const today = new Date().toISOString().split('T')[0];
 
-    // State initialization based on initialData
-
-    // Determine initial frequency type and days
     const initialFreq = initialData?.frequency;
     let initialType = 'Daily';
     let initialDays: string[] = [];
@@ -244,7 +271,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRe
 
     if (!isOpen) return null;
 
-    const durationOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+    const durationOptions = Array.from({length: 12}, (_, i) => i + 1);
     const dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 
@@ -280,7 +307,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRe
 
     return (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all scale-100 opacity-100">
+            <div
+                className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all scale-100 opacity-100">
                 <header className="p-6 border-b bg-indigo-600 rounded-t-xl text-white sticky top-0 z-10">
                     <h2 className="text-2xl font-extrabold flex items-center">
                         📅 {initialData ? 'Edit Session Proposal' : 'Propose a Swap Session'} with {otherUserName}
@@ -317,7 +345,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRe
                             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-lg"
                             required
                         />
-                        <p className="text-xs text-gray-500 mt-1">This time will be suggested, and they will see it converted to their timezone.</p>
+                        <p className="text-xs text-gray-500 mt-1">This time will be suggested, and they will see it
+                            converted to their timezone.</p>
                     </div>
 
                     {/* Frequency Picker */}
@@ -364,11 +393,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRe
                                         onChange={() => setFrequencyType('Specific Days')}
                                         className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                                     />
-                                    <span className="text-gray-900 font-medium">Specific Days Only (e.g., Mon/Wed)</span>
+                                    <span
+                                        className="text-gray-900 font-medium">Specific Days Only (e.g., Mon/Wed)</span>
                                 </div>
 
                                 {frequencyType === 'Specific Days' && (
-                                    <div className="flex flex-wrap gap-2 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                    <div
+                                        className="flex flex-wrap gap-2 p-2 border border-gray-200 rounded-lg bg-gray-50">
                                         {dayOptions.map(day => (
                                             <button
                                                 key={day}
@@ -419,7 +450,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRe
                     {/* Notice */}
                     <div className="p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded-lg space-y-1">
                         <p className="text-sm font-medium">
-                            🔔 Reminder: These terms are a request. You can both update the schedule later in the chat if needed!
+                            🔔 Reminder: These terms are a request. You can both update the schedule later in the chat if
+                            needed!
                         </p>
                         <p className="text-xs text-blue-700">
                             We will send an email reminder 15 minutes before the scheduled time on each session day.
@@ -454,14 +486,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({ isOpen, onClose, onSendRe
 };
 
 
-// --- Main MessagesContent Component ---
-
 interface MessagesContentProps {
     initialChatData: { convId: string; receiverId: string } | null;
 }
 
-const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) => {
-    const { user } = useAuth();
+const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
+    const {user} = useAuth();
     const currentUserId = user?.$id;
     const propConvId = initialChatData?.convId;
     const propReceiverId = initialChatData?.receiverId;
@@ -470,7 +500,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         ? getConversationId(currentUserId, propReceiverId)
         : null;
 
-    const { conversations, isLoading: isLoadingConversations, error: convError } = useConversations();
+    const {conversations, isLoading: isLoadingConversations, error: convError} = useConversations();
 
     const [activeConversation, setActiveConversation] = useState<ConversationSummary | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -481,7 +511,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const recipientIdForDetails = activeConversation?.otherUserId || propReceiverId;
-    const { userDetails, isLoading: isLoadingUserDetails } = useUserDetails(recipientIdForDetails);
+    const {userDetails, isLoading: isLoadingUserDetails} = useUserDetails(recipientIdForDetails);
 
     // Effect for handling initial chat selection/creation (Maximum update depth exceeded fix needed here)
     useEffect(() => {
@@ -502,8 +532,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                 return;
             }
 
-            // This block causes a state update inside useEffect without clean dependencies, causing the error (line 96)
-            // It needs to be inside a check that prevents infinite loops.
             if (!activeConversation && userDetails && recipientIdForDetails === propReceiverId) {
                 const displayBio = userDetails.bio || `Wants to teach ${userDetails.skillsToTeach?.[0] || 'a skill'}.`;
 
@@ -518,9 +546,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                     otherUserSkill: displayBio,
                 } as ConversationSummary;
 
-                // FIX: Instead of calling a non-existent setTempInitialChat, we call setActiveConversation
-                // The dependencies are correct, but the logic might run multiple times if userDetails updates.
-                // We ensure it only runs if activeConversation is null.
                 setActiveConversation(tempConvSummary);
             }
         }
@@ -533,7 +558,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         currentUserId,
         userDetails,
         isLoadingConversations,
-        activeConversation, // Keep this dependency to ensure the state update is limited to when it's null
+        activeConversation,
         recipientIdForDetails
     ]);
 
@@ -550,11 +575,9 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         markAsRead
     } = useChatService(activeConversationId, receiverId);
 
-    // --- Effects for UI and Chat Service ---
-
     useEffect(() => {
         if (messagesEndRef.current && messages.length > 0) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            messagesEndRef.current.scrollIntoView({behavior: 'smooth'});
         }
     }, [messages]);
 
@@ -565,19 +588,15 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
     }, [activeConversationId, markAsRead]);
 
 
-    // --- Handlers ---
-
     const handleOpenModal = (data: MeetingRequestData | null = null) => {
         setInitialModalData(data);
         setIsModalOpen(true);
     };
 
-    // Handler passed to MeetingRequestBubble for "Edit" button
     const handleEditRequest = useCallback((data: MeetingRequestData) => {
         handleOpenModal(data);
     }, []);
 
-    // Handles sending a regular message (same as before)
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputMessage.trim() || !receiverId || isSending) return;
@@ -593,7 +612,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         }
     };
 
-    // Handles sending a meeting request message (sends JSON)
     const handleSendMeetingRequest = async (data: MeetingRequestData) => {
         if (!receiverId) return;
 
@@ -608,7 +626,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         }
     };
 
-    // Handle keyboard shortcuts for textarea
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -616,12 +633,10 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
         }
     };
 
-    // Handles selecting a conversation from the sidebar (same as before)
     const handleSelectConversation = (conv: ConversationSummary) => {
         setActiveConversation(conv);
     };
 
-    // Sidebar logic (same as before)
     const sidebarChats = conversations
         .slice()
         .sort((a, b) => new Date(b.lastMessageTimestamp).getTime() - new Date(a.lastMessageTimestamp).getTime());
@@ -635,7 +650,6 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
     return (
         <div className="flex h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-            {/* Schedule Modal */}
             <ScheduleModal
                 isOpen={isModalOpen}
                 onClose={() => {
@@ -644,10 +658,9 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                 }}
                 onSendRequest={handleSendMeetingRequest}
                 otherUserName={otherUserName}
-                initialData={initialModalData} // Pass initial data for editing
+                initialData={initialModalData}
             />
 
-            {/* 1. Sidebar */}
             <aside className="w-80 border-r bg-gray-50 flex flex-col">
                 <header className="p-4 border-b bg-indigo-700 text-white shadow-lg">
                     <h2 className="text-2xl font-extrabold flex items-center">
@@ -718,7 +731,8 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                             <div>
                                 {isLoadingUserDetails && isTempChat ? (
                                     <>
-                                        <h3 className="text-xl font-bold text-gray-800 animate-pulse">Loading Match...</h3>
+                                        <h3 className="text-xl font-bold text-gray-800 animate-pulse">Loading
+                                            Match...</h3>
                                         <p className="text-sm text-gray-600 font-medium">Bio: Fetching details...</p>
                                     </>
                                 ) : (
@@ -741,9 +755,11 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                         {/* Message Display Area */}
                         <div className="flex-grow p-6 space-y-4 overflow-y-auto bg-gray-100">
                             {isLoadingMessages ? (
-                                <div className="text-center p-10 text-indigo-600 font-semibold">Loading messages...</div>
+                                <div className="text-center p-10 text-indigo-600 font-semibold">Loading
+                                    messages...</div>
                             ) : messages.length === 0 ? (
-                                <div className="text-center p-10 text-gray-500 italic">Start the conversation! No messages exchanged yet.</div>
+                                <div className="text-center p-10 text-gray-500 italic">Start the conversation! No
+                                    messages exchanged yet.</div>
                             ) : (
                                 messages.map((msg) => (
                                     <MessageBubbleWrapper
@@ -751,7 +767,9 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                                         text={msg.text}
                                         time={msg.$createdAt}
                                         isCurrentUser={msg.senderId === currentUserId}
-                                        onEdit={handleEditRequest} // Pass edit handler to wrapper
+                                        onEdit={handleEditRequest}
+                                        currentUser={receiverId!}
+                                        convId={getConversationId(currentUserId!, receiverId!)!}
                                     />
                                 ))
                             )}
@@ -782,9 +800,12 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                                 }
                             >
                                 {isSending ? (
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+                                         fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor"
+                                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                 ) : 'Send'}
                             </button>
@@ -794,7 +815,8 @@ const MessagesContent: React.FC<MessagesContentProps> = ({ initialChatData }) =>
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 p-10 bg-gray-50">
                         <span className="text-7xl mb-4">💬</span>
                         <h2 className='text-2xl font-bold text-gray-800'>Welcome to your Inbox!</h2>
-                        <p className='mt-2 text-center text-gray-600 max-w-sm'>Select a conversation from the left to start chatting and scheduling your first skill swap session.</p>
+                        <p className='mt-2 text-center text-gray-600 max-w-sm'>Select a conversation from the left to
+                            start chatting and scheduling your first skill swap session.</p>
                     </div>
                 )}
             </main>

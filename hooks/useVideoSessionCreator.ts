@@ -1,6 +1,5 @@
-import { useMemo } from 'react';
-import { Client, Functions } from 'appwrite';
-import { useAuth } from './useAuth'; // Assuming your useAuth is in the same folder or path
+import { Client, Functions } from "appwrite";
+import { useAuth } from "@/hooks/useAuth"; // adjust to your actual import
 
 const FUNCTION_ID = '68f30101003582e25c10';
 
@@ -12,54 +11,72 @@ interface ScheduleDetails {
     [key: string]: any;
 }
 
+// 🧩 You can store these in .env.local or constants
+const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1"; // Or your self-hosted endpoint
+const APPWRITE_PROJECT_ID = "skill-swap";
+
 export const useVideoSessionCreator = () => {
-    // Get the Appwrite client and current user details from useAuth
-    const { user, client, isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
 
-    const functions = useMemo(() => {
-        if (client) {
-            // Functions service must be initialized with the Appwrite Client
-            return new Functions(client);
-        }
-        return null;
-    }, [client]);
+    // Initialize Appwrite client and Functions
+    const client = new Client()
+        .setEndpoint(APPWRITE_ENDPOINT)
+        .setProject(APPWRITE_PROJECT_ID);
 
-    const createSession = async ({ senderId, conversationId, scheduleDetails }: {
+    const functions = new Functions(client);
+
+    const createSession = async ({
+                                     senderId,
+                                     conversationId,
+                                     scheduleDetails,
+                                 }: {
         senderId: string;
         conversationId: string;
         scheduleDetails: ScheduleDetails;
     }) => {
-        if (!functions || !user || !isAuthenticated) {
-            throw new Error("You must be logged in to accept a meeting.");
+
+        if (!user?.$id) {
+            throw new Error("Receiver (current user) not found. Please log in.");
         }
 
-        // The current user (who clicked 'Accept') is the receiver.
         const receiverId = user.$id;
 
-        // The payload must match what your Python function expects
-        const payload = JSON.stringify({
+        const sanitizedSchedule = {
+            ...scheduleDetails,
+            startDate: String(scheduleDetails.startDate),
+            time: String(scheduleDetails.time),
+            frequency: String(scheduleDetails.frequency),
+            durationMonths: Number(scheduleDetails.durationMonths),
+        };
+
+        const payload = {
             senderId,
             receiverId,
             conversationId,
-            scheduleDetails,
-        });
+            scheduleDetails: sanitizedSchedule,
+        };
+
+        console.log("🟢 Sending JSON payload:", JSON.stringify(payload, null, 2));
 
         try {
-            // Execute the function
-            const result = await functions.createExecution(
+            // ✅ Run Appwrite Function instead of calling .run URL
+            const execution = await functions.createExecution(
                 FUNCTION_ID,
-                payload,
-                false,
-                'POST'
+                JSON.stringify(payload)
             );
 
-            // result.responseBody is a JSON string of the Python function's return value
-            const responseData = JSON.parse(result.responseBody);
+            // The response is a string — parse it
+            const responseData = JSON.parse(execution.responseBody || "{}");
 
-            if (result.statusCode !== 201 || !responseData.success) {
-                console.error("Function Error Details:", responseData);
-                throw new Error(responseData.error || "Failed to create video session. Check function logs.");
+            // ✅ Handle error conditions
+            if (!responseData.success) {
+                console.error("❌ Function Error Details:", responseData);
+                throw new Error(
+                    responseData.error || "Failed to create video session"
+                );
             }
+
+            console.log("✅ Session created successfully:", responseData);
 
             return {
                 meetingId: responseData.meetingId as string,
@@ -67,10 +84,18 @@ export const useVideoSessionCreator = () => {
             };
 
         } catch (error) {
-            console.error("Video Session Creation Error:", error);
-            throw new Error(`Could not finalize video session: ${error instanceof Error ? error.message : "Unknown error"}`);
+            console.error("🚨 Video Session Creation Error:", error);
+            throw new Error(
+                `Could not finalize video session: ${
+                    error instanceof Error ? error.message : "Unknown error"
+                }`
+            );
         }
     };
 
-    return { createSession, isLoading: !functions };
+    return { createSession };
 };
+
+
+
+
