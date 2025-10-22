@@ -1,5 +1,6 @@
+import React from "react";
 import { Client, Functions } from "appwrite";
-import { useAuth } from "@/hooks/useAuth"; // adjust to your actual import
+import { useAuth } from "@/hooks/useAuth";
 
 const FUNCTION_ID = '68f30101003582e25c10';
 
@@ -17,6 +18,7 @@ const APPWRITE_PROJECT_ID = "skill-swap";
 
 export const useVideoSessionCreator = () => {
     const { user, isAuthenticated } = useAuth();
+    const [isLoading, setIsLoading] = React.useState(false);
 
     // Initialize Appwrite client and Functions
     const client = new Client()
@@ -58,6 +60,7 @@ export const useVideoSessionCreator = () => {
 
         console.log("🟢 Sending JSON payload:", JSON.stringify(payload, null, 2));
 
+        setIsLoading(true);
         try {
             // ✅ Run Appwrite Function instead of calling .run URL
             const execution = await functions.createExecution(
@@ -90,10 +93,12 @@ export const useVideoSessionCreator = () => {
                     error instanceof Error ? error.message : "Unknown error"
                 }`
             );
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    return { createSession };
+    return { createSession, isLoading };
 };
 
 

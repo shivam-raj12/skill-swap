@@ -6,6 +6,8 @@ import {useConversations, ConversationSummary, getConversationId} from '@/hooks/
 import {useAuth} from '@/hooks/useAuth';
 import {useVideoSessionCreator} from '@/hooks/useVideoSessionCreator';
 import {useUserDetails} from '@/hooks/useUserDetails';
+import {Client, Databases, Query} from 'appwrite';
+import {APPWRITE_CONFIG, APPWRITE_DB_ID, APPWRITE_MEETINGS_COLLECTION_ID} from '@/constants';
 
 
 const JSON_MEETING_REQUEST_PREFIX = '[MEETING_REQUEST_JSON]';
@@ -64,8 +66,46 @@ const MeetingRequestBubble: React.FC<
 }
 > = ({data, time, isCurrentUser, onEdit, senderId, conversationId}) => {
 
-    // ✅ Use your Appwrite-based custom hook
     const {createSession, isLoading} = useVideoSessionCreator();
+    const [checkingMeeting, setCheckingMeeting] = useState(false);
+    const [meetingExists, setMeetingExists] = useState(false);
+    const [meetingId, setMeetingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkForExistingMeeting = async () => {
+            if (!conversationId) return;
+            
+            setCheckingMeeting(true);
+            try {
+                const client = new Client();
+                client
+                    .setEndpoint(APPWRITE_CONFIG.endpoint)
+                    .setProject(APPWRITE_CONFIG.projectId);
+                
+                const databases = new Databases(client);
+                
+                const response = await databases.listDocuments(
+                    APPWRITE_DB_ID,
+                    APPWRITE_MEETINGS_COLLECTION_ID,
+                    [
+                        Query.equal('conversationId', conversationId),
+                        Query.limit(1)
+                    ]
+                );
+                
+                if (response.documents.length > 0) {
+                    setMeetingExists(true);
+                    setMeetingId(response.documents[0].$id);
+                }
+            } catch (error) {
+                console.error('Error checking for existing meeting:', error);
+            } finally {
+                setCheckingMeeting(false);
+            }
+        };
+
+        checkForExistingMeeting();
+    }, [conversationId]);
 
     const bubbleClass = isCurrentUser
         ? 'bg-white border-2 border-indigo-500 shadow-xl self-end rounded-br-none'
@@ -80,21 +120,27 @@ const MeetingRequestBubble: React.FC<
 
     const status = isCurrentUser ? 'Proposed (Awaiting Partner)' : 'New Proposal';
 
-    // ✅ Handle Accept Click
     const handleAccept = async () => {
         try {
             const result = await createSession({
                 senderId,
                 conversationId,
-                scheduleDetails: data, // assuming your data matches ScheduleDetails shape
+                scheduleDetails: data,
             });
 
             console.log('Meeting Created Successfully:', result);
+            setMeetingExists(true);
+            setMeetingId(result.meetingId);
             alert(`Meeting created! ID: ${result.meetingId}`);
-            // Optionally navigate or update state here
         } catch (error) {
             console.error('Failed to create video session:', error);
             alert((error as Error).message);
+        }
+    };
+
+    const handleJoinMeeting = () => {
+        if (meetingId) {
+            window.open(`/meeting/${meetingId}`, '_blank');
         }
     };
 
@@ -125,12 +171,30 @@ const MeetingRequestBubble: React.FC<
 
             <div className="flex space-x-2 p-2 pt-0">
                 {isCurrentUser ? (
-                    <button
-                        onClick={() => onEdit(data)}
-                        className="flex-1 text-sm py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 transition font-semibold shadow-md"
-                    >
-                        Edit/Resend Proposal
-                    </button>
+                    <>
+                        <button
+                            onClick={() => onEdit(data)}
+                            className="flex-1 text-sm py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 transition font-semibold shadow-md"
+                        >
+                            Edit/Resend Proposal
+                        </button>
+                        {checkingMeeting ? (
+                            <button
+                                disabled
+                                className="flex-1 text-sm py-2 bg-gray-300 rounded-lg font-semibold shadow-md cursor-not-allowed relative overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-200 to-transparent animate-pulse"></div>
+                                <span className="relative">Checking...</span>
+                            </button>
+                        ) : meetingExists ? (
+                            <button
+                                onClick={handleJoinMeeting}
+                                className="flex-1 text-sm py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold shadow-md"
+                            >
+                                Join Meeting
+                            </button>
+                        ) : null}
+                    </>
                 ) : (
                     <>
                         <button
@@ -139,17 +203,34 @@ const MeetingRequestBubble: React.FC<
                         >
                             Edit
                         </button>
-                        <button
-                            onClick={handleAccept}
-                            disabled={isLoading}
-                            className={`flex-1 text-sm py-2 rounded-lg font-semibold shadow-md transition ${
-                                isLoading
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                            }`}
-                        >
-                            {isLoading ? 'Starting...' : 'Accept'}
-                        </button>
+                        {checkingMeeting ? (
+                            <button
+                                disabled
+                                className="flex-1 text-sm py-2 bg-gray-300 rounded-lg font-semibold shadow-md cursor-not-allowed relative overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-200 to-transparent animate-pulse"></div>
+                                <span className="relative">Checking...</span>
+                            </button>
+                        ) : meetingExists ? (
+                            <button
+                                onClick={handleJoinMeeting}
+                                className="flex-1 text-sm py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold shadow-md"
+                            >
+                                Join Meeting
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleAccept}
+                                disabled={isLoading}
+                                className={`flex-1 text-sm py-2 rounded-lg font-semibold shadow-md transition ${
+                                    isLoading
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                }`}
+                            >
+                                {isLoading ? 'Starting...' : 'Accept'}
+                            </button>
+                        )}
                     </>
                 )}
             </div>
@@ -504,14 +585,63 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
 
     const [activeConversation, setActiveConversation] = useState<ConversationSummary | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [initialModalData, setInitialModalData] = useState<MeetingRequestData | null>(null); // State for edit data
+    const [initialModalData, setInitialModalData] = useState<MeetingRequestData | null>(null);
     const [inputMessage, setInputMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [checkingHeaderMeeting, setCheckingHeaderMeeting] = useState(false);
+    const [headerMeetingExists, setHeaderMeetingExists] = useState(false);
+    const [headerMeetingId, setHeaderMeetingId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const recipientIdForDetails = activeConversation?.otherUserId || propReceiverId;
+    const recipientIdForDetails = activeConversation?.otherUserId || propReceiverId || null;
     const {userDetails, isLoading: isLoadingUserDetails} = useUserDetails(recipientIdForDetails);
+
+    useEffect(() => {
+        const checkForHeaderMeeting = async () => {
+            const activeConvId = activeConversation?.$id;
+            if (!activeConvId) {
+                setHeaderMeetingExists(false);
+                setHeaderMeetingId(null);
+                return;
+            }
+            
+            setCheckingHeaderMeeting(true);
+            try {
+                const client = new Client();
+                client
+                    .setEndpoint(APPWRITE_CONFIG.endpoint)
+                    .setProject(APPWRITE_CONFIG.projectId);
+                
+                const databases = new Databases(client);
+                
+                const response = await databases.listDocuments(
+                    APPWRITE_DB_ID,
+                    APPWRITE_MEETINGS_COLLECTION_ID,
+                    [
+                        Query.equal('conversationId', activeConvId),
+                        Query.limit(1)
+                    ]
+                );
+                
+                if (response.documents.length > 0) {
+                    setHeaderMeetingExists(true);
+                    setHeaderMeetingId(response.documents[0].$id);
+                } else {
+                    setHeaderMeetingExists(false);
+                    setHeaderMeetingId(null);
+                }
+            } catch (error) {
+                console.error('Error checking for header meeting:', error);
+                setHeaderMeetingExists(false);
+                setHeaderMeetingId(null);
+            } finally {
+                setCheckingHeaderMeeting(false);
+            }
+        };
+
+        checkForHeaderMeeting();
+    }, [activeConversation?.$id]);
 
     // Effect for handling initial chat selection/creation (Maximum update depth exceeded fix needed here)
     useEffect(() => {
@@ -744,12 +874,33 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                             </div>
 
                             {/* Schedule Meeting Button - Opens Modal */}
-                            <button
-                                onClick={() => handleOpenModal()} // No data passed for new proposal
-                                className="flex items-center bg-emerald-500 text-white font-semibold py-2 px-4 rounded-xl hover:bg-emerald-600 transition shadow-lg transform hover:scale-[1.02]"
-                            >
-                                📅 Propose Session
-                            </button>
+                            {checkingHeaderMeeting ? (
+                                <button
+                                    disabled
+                                    className="flex items-center bg-gray-300 text-gray-600 font-semibold py-2 px-4 rounded-xl shadow-lg cursor-not-allowed relative overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-200 to-transparent animate-pulse"></div>
+                                    <span className="relative">⏳ Checking...</span>
+                                </button>
+                            ) : headerMeetingExists ? (
+                                <button
+                                    onClick={() => {
+                                        if (headerMeetingId) {
+                                            window.open(`/meeting/${headerMeetingId}`, '_blank');
+                                        }
+                                    }}
+                                    className="flex items-center bg-green-500 text-white font-semibold py-2 px-4 rounded-xl hover:bg-green-600 transition shadow-lg transform hover:scale-[1.02]"
+                                >
+                                    🎥 Join Meeting
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handleOpenModal()}
+                                    className="flex items-center bg-emerald-500 text-white font-semibold py-2 px-4 rounded-xl hover:bg-emerald-600 transition shadow-lg transform hover:scale-[1.02]"
+                                >
+                                    📅 Propose Session
+                                </button>
+                            )}
                         </header>
 
                         {/* Message Display Area */}

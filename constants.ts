@@ -16,6 +16,7 @@ export const APPWRITE_PROFILES_COLLECTION_ID = 'profiles';
 export const APPWRITE_STORAGE_BUCKET_ID = 'profile';
 export const APPWRITE_CONVERSATIONS_COLLECTION_ID = 'conversations';
 export const APPWRITE_MESSAGES_COLLECTION_ID = 'messages';
+export const APPWRITE_MEETINGS_COLLECTION_ID = 'meetings';
 export const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 
 // export const messagesCollectionId = "messages"
