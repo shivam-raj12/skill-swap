@@ -8,12 +8,13 @@ export function MeetingDetailsScreen({
   participantName,
   setParticipantName,
   onClickStartMeeting,
+  meetingId: initialMeetingId,
 }) {
-  const [meetingId, setMeetingId] = useState("");
+  const [meetingId, setMeetingId] = useState(initialMeetingId || "");
   const [meetingIdError, setMeetingIdError] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [iscreateMeetingClicked, setIscreateMeetingClicked] = useState(false);
-  const [isJoinMeetingClicked, setIsJoinMeetingClicked] = useState(false);
+  const [isJoinMeetingClicked, setIsJoinMeetingClicked] = useState(!!initialMeetingId);
 
   return (
     <div
@@ -41,7 +42,7 @@ export function MeetingDetailsScreen({
             )}
           </button>
         </div>
-      ) : isJoinMeetingClicked ? (
+      ) : isJoinMeetingClicked && !initialMeetingId ? (
         <>
           <input
             defaultValue={meetingId}
@@ -88,38 +89,11 @@ export function MeetingDetailsScreen({
         </>
       )}
 
-      {!iscreateMeetingClicked && !isJoinMeetingClicked && (
+      {!iscreateMeetingClicked && !isJoinMeetingClicked && !initialMeetingId && (
         <div className="w-full md:mt-0 mt-4 flex flex-col">
           <div className="flex items-center justify-center flex-col w-full ">
             <button
-              className="w-full bg-purple-350 text-white px-2 py-3 rounded-xl"
-              onClick={async (e) => {
-                const { meetingId, err } = await _handleOnCreateMeeting();
-              
-                if (meetingId) {
-                  setMeetingId(meetingId);
-                  setIscreateMeetingClicked(true);
-                } else {
-                  toast(
-                    `${err}`,
-                    {
-                      position: "bottom-left",
-                      autoClose: 4000,
-                      hideProgressBar: true,
-                      closeButton: false,
-                      pauseOnHover: true,
-                      draggable: true,
-                      progress: undefined,
-                      theme: "light",
-                    }
-                  );
-                }
-              }}
-            >
-              Create a meeting
-            </button>
-            <button
-              className="w-full bg-gray-650 text-white px-2 py-3 rounded-xl mt-5"
+              className="w-full bg-gray-650 text-white px-2 py-3 rounded-xl"
               onClick={(e) => {
                 setIsJoinMeetingClicked(true);
               }}
@@ -127,6 +101,14 @@ export function MeetingDetailsScreen({
               Join a meeting
             </button>
           </div>
+        </div>
+      )}
+      
+      {initialMeetingId && !iscreateMeetingClicked && (
+        <div className="border border-solid border-gray-400 rounded-xl px-4 py-3 mb-5 flex items-center justify-center">
+          <p className="text-white text-base">
+            {`Meeting ID: ${initialMeetingId}`}
+          </p>
         </div>
       )}
     </div>

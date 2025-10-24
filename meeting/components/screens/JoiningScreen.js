@@ -22,6 +22,7 @@ export function JoiningScreen({
   participantName,
   setParticipantName,
   setMeetingId,
+  meetingId,
   setToken,
   setMicOn,
   setWebcamOn,
@@ -528,14 +529,15 @@ export function JoiningScreen({
                     setParticipantName={setParticipantName}
                     videoTrack={videoTrack}
                     setVideoTrack={setVideoTrack}
+                    meetingId={meetingId}
                     onClickStartMeeting={onClickStartMeeting}
                     onClickJoin={async (id) => {
                       const token = await getToken();
-                      const { meetingId, err } = await validateMeeting({
+                      const { meetingId: validatedMeetingId, err } = await validateMeeting({
                         roomId: id,
                         token,
                       });
-                      if (meetingId === id) {
+                      if (validatedMeetingId === id) {
                         setToken(token);
                         setMeetingId(id);
                         onClickStartMeeting();
@@ -554,13 +556,13 @@ export function JoiningScreen({
                     }}
                     _handleOnCreateMeeting={async () => {
                       const token = await getToken();
-                      const { meetingId, err } = await createMeeting({ token });
+                      const { meetingId: createdMeetingId, err } = await createMeeting({ token });
 
-                      if (meetingId) {
+                      if (createdMeetingId) {
                         setToken(token);
-                        setMeetingId(meetingId);
+                        setMeetingId(createdMeetingId);
                       }
-                      return { meetingId: meetingId, err: err };
+                      return { meetingId: createdMeetingId, err: err };
                     }}
                   />
                 </div>
