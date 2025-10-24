@@ -9,7 +9,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardHomeContent from '@/components/Dashboard/DashboardHomeContent';
 import FindMatchContent from '@/components/Dashboard/FindMatchContent';
 import MySkillsContent from '@/components/Dashboard/MySkillsContent';
-import SettingsContent from '@/components/Dashboard/SettingsContent';
+import MeetingsContent from '@/components/Dashboard/MeetingsContent';
 import MessagesContent from '@/components/Dashboard/MessagesContent';
 
 import { APPWRITE_CONFIG } from '@/constants';
@@ -25,7 +25,8 @@ const NAVIGATION_ITEMS = [
     { id: 'dashboard', icon: "🏠", label: "Dashboard" },
     { id: 'find-match', icon: "🔍", label: "Find Match" },
     { id: 'my-skills', icon: "🛠️", label: "My Skills" },
-    { id: 'messages', icon: "💬", label: "Messages" }
+    { id: 'messages', icon: "💬", label: "Messages" },
+    { id: 'meetings', icon: "🎥", label: "Meetings" }
 ];
 
 const LogoutButton: React.FC = () => {
@@ -107,8 +108,8 @@ const DashboardMaster: React.FC = () => {
                 return <FindMatchContent onStartSwap={handleStartSwap} />;
             case 'my-skills':
                 return <MySkillsContent />;
-            case 'settings':
-                return <SettingsContent />;
+            case 'meetings':
+                return <MeetingsContent />;
             case 'messages':
                 return <MessagesContent initialChatData={chatInitData} />;
             case 'profile-setup':

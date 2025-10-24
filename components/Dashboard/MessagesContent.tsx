@@ -626,7 +626,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
                 
                 if (response.documents.length > 0) {
                     setHeaderMeetingExists(true);
-                    setHeaderMeetingId(response.documents[0].$id);
+                    setHeaderMeetingId(response.documents[0].meetingId);
                 } else {
                     setHeaderMeetingExists(false);
                     setHeaderMeetingId(null);

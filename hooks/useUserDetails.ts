@@ -39,8 +39,6 @@ export const useUserDetails = (userId: string | null) => {
             const profile = response.documents[0] as unknown as (Models.Document & UserProfile);
 
             if (profile) {
-                // Determine the skill they are teaching that you want to learn (for the "Topic" line)
-                // Since this is complex to compute here, we'll just display their main teaching skill for now.
                 const displayedSkill = (profile.skillsToTeach && profile.skillsToTeach.length > 0)
                     ? profile.skillsToTeach[0]
                     : 'SkillSwap';
@@ -48,11 +46,9 @@ export const useUserDetails = (userId: string | null) => {
                 setUserDetails({
                     name: profile.name || `User ${id.substring(0, 5)}`,
                     bio: profile.bio || 'No bio provided.',
-                    // We only need the skills for display purposes
                     skillsToTeach: profile.skillsToTeach || [],
                     skillsToLearn: profile.skillsToLearn || [],
 
-                    // Add the best guess for the topic back into the object for easy access
                     displayedSkill: displayedSkill,
                 } as UserProfile & { displayedSkill: string });
             } else {
