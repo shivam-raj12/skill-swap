@@ -242,7 +242,7 @@ const MeetingsContent: React.FC = () => {
                             </div>
 
                             <Link
-                                href={`/meetings/${meeting.meetingId}`}
+                                href={`/meeting-setup/${meeting.meetingId}`}
                                 passHref
                                 legacyBehavior
                             >
