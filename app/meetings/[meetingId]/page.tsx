@@ -10,10 +10,15 @@ import { JoiningScreen } from "@/meeting/components/screens/JoiningScreen";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "@/meeting/index.css";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserDetails } from "@/hooks/useUserDetails";
 
 export default function MeetingSetupPage() {
   const params = useParams();
   const meetingIdFromUrl = params.meetingId as string;
+  
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { userDetails, isLoading: isProfileLoading } = useUserDetails(user?.$id || null);
 
   const [token, setToken] = useState("");
   const [meetingId, setMeetingId] = useState(meetingIdFromUrl || "");
@@ -34,6 +39,12 @@ export default function MeetingSetupPage() {
       setMeetingId(meetingIdFromUrl);
     }
   }, [meetingIdFromUrl]);
+
+  useEffect(() => {
+    if (userDetails?.name) {
+      setParticipantName(userDetails.name);
+    }
+  }, [userDetails]);
 
   useEffect(() => {
     if (isMobile && typeof window !== 'undefined') {
@@ -66,7 +77,6 @@ export default function MeetingSetupPage() {
             onMeetingLeave={() => {
               setToken("");
               setMeetingId(meetingIdFromUrl || "");
-              setParticipantName("");
               setWebcamOn(false);
               setMicOn(false);
               setMeetingStarted(false);
@@ -96,6 +106,8 @@ export default function MeetingSetupPage() {
           }}
           startMeeting={isMeetingStarted}
           setIsMeetingLeft={setIsMeetingLeft}
+          hideNameInput={true}
+          isLoadingName={isProfileLoading}
         />
       )}
       </MeetingAppProvider>

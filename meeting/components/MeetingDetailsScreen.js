@@ -9,6 +9,8 @@ export function MeetingDetailsScreen({
   setParticipantName,
   onClickStartMeeting,
   meetingId: initialMeetingId,
+  hideNameInput = false,
+  isLoadingName = false,
 }) {
   const [meetingId, setMeetingId] = useState(initialMeetingId || "");
   const [meetingIdError, setMeetingIdError] = useState(false);
@@ -60,20 +62,31 @@ export function MeetingDetailsScreen({
 
       {(iscreateMeetingClicked || isJoinMeetingClicked) && (
         <>
-          <input
-            value={participantName}
-            onChange={(e) => setParticipantName(e.target.value)}
-            placeholder="Enter your name"
-            className="px-4 py-3 mt-5 bg-gray-650 rounded-xl text-white w-full text-center"
-          />
-
-          {/* <p className="text-xs text-white mt-1 text-center">
-            Your name will help everyone identify you in the meeting.
-          </p> */}
+          {!hideNameInput && (
+            <input
+              value={participantName}
+              onChange={(e) => setParticipantName(e.target.value)}
+              placeholder="Enter your name"
+              className="px-4 py-3 mt-5 bg-gray-650 rounded-xl text-white w-full text-center"
+            />
+          )}
+          {hideNameInput && isLoadingName && (
+            <div className="px-4 py-3 mt-5 bg-indigo-600 rounded-xl text-white w-full text-center">
+              Loading your profile...
+            </div>
+          )}
+          {hideNameInput && !isLoadingName && participantName && (
+            <div className="px-4 py-3 mt-5 bg-indigo-600 rounded-xl text-white w-full text-center font-medium">
+              Welcome, {participantName}!
+            </div>
+          )}
           <button
-            disabled={participantName.length < 3}
-            className={`w-full ${participantName.length < 3 ? "bg-gray-650" : "bg-purple-350"
-              }  text-white px-2 py-3 rounded-xl mt-5`}
+            disabled={hideNameInput ? !participantName : participantName.length < 3}
+            className={`w-full ${
+              (hideNameInput && !participantName) || (!hideNameInput && participantName.length < 3) 
+                ? "bg-gray-650 cursor-not-allowed" 
+                : "bg-indigo-600 hover:bg-indigo-700"
+              }  text-white px-2 py-3 rounded-xl mt-5 font-medium transition-all duration-200`}
             onClick={(e) => {
               if (iscreateMeetingClicked) {
                 onClickStartMeeting();

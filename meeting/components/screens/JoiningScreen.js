@@ -32,6 +32,8 @@ export function JoiningScreen({
   setCustomVideoStream,
   micOn,
   webcamOn,
+  hideNameInput = false,
+  isLoadingName = false,
 }) {
   const {
     selectedWebcam,
@@ -423,7 +425,7 @@ export function JoiningScreen({
 
   return (
     <>
-      <div className="overflow-y-auto flex flex-col flex-1  h-screen bg-gray-800">
+      <div className="overflow-y-auto flex flex-col flex-1  h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800">
         <div className="flex flex-1 flex-col md:flex-row  items-center justify-center m-10 md:m-[30px] lg:m-16">
           <div className="container grid  md:grid-flow-col grid-flow-row ">
             <div className="grid grid-cols-12">
@@ -530,6 +532,8 @@ export function JoiningScreen({
                     videoTrack={videoTrack}
                     setVideoTrack={setVideoTrack}
                     meetingId={meetingId}
+                    hideNameInput={hideNameInput}
+                    isLoadingName={isLoadingName}
                     onClickStartMeeting={onClickStartMeeting}
                     onClickJoin={async (id) => {
                       const token = await getToken();
