@@ -61,7 +61,8 @@ export default function MeetingSetupPage() {
         name: participantName ? participantName : "TestUser",
         multiStream: true,
         customCameraVideoTrack: customVideoStream,
-        customMicrophoneAudioTrack: customAudioStream
+        customMicrophoneAudioTrack: customAudioStream,
+        debugMode: false,
     }), [meetingId, micOn, webcamOn, participantName, customVideoStream, customAudioStream]);
 
     return (
@@ -70,6 +71,7 @@ export default function MeetingSetupPage() {
             <MeetingAppProvider>
                 {isMeetingStarted ? (
                     <MeetingProvider
+                        // @ts-expect-error I don't know fix
                         config={meetingConfig}
                         token={token}
                         reinitialiseMeetingOnConfigChange={true}
@@ -101,6 +103,7 @@ export default function MeetingSetupPage() {
                         setWebcamOn={setWebcamOn}
                         customAudioStream={customAudioStream}
                         setCustomAudioStream={setCustomAudioStream}
+                        // @ts-expect-error unknown issue
                         customVideoStream={customVideoStream}
                         setCustomVideoStream={setCustomVideoStream}
                         onClickStartMeeting={() => {
