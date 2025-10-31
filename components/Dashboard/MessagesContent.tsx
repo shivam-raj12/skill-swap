@@ -406,7 +406,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({isOpen, onClose, onSendReq
 
         setIsSubmitting(true);
         try {
-            await onSendRequest({
+            onSendRequest({
                 time: selectedTime,
                 utcTime: utcTime,
                 startDate,

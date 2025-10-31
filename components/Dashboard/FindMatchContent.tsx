@@ -230,10 +230,9 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
                         className="mt-6 p-4 bg-indigo-100 border-l-4 border-indigo-500 rounded-xl shadow-md max-w-lg mx-auto flex items-start space-x-3">
                         <span className="text-indigo-600 text-2xl mt-1">📧</span>
                         <div>
-                            <p className="font-bold text-indigo-800">Don&#39;t worry, we&#39;ll keep looking!</p>
+                            <p className="font-bold text-indigo-800">Don&#39;t worry, the search isn&#39;t over!</p>
                             <p className="text-sm text-indigo-700 mt-1">
-                                We will send you a notification email the moment a new mutual match is found, so you
-                                won&#39;t miss any opportunities.
+                                Matches can appear at any time. Check back regularly to discover new opportunities.
                             </p>
                         </div>
                     </div>
@@ -249,12 +248,18 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
 
                             {/* ... (Profile details and skills) ... */}
                             <div className="flex items-center space-x-4 pb-3 border-b border-gray-100">
-                                <div
-                                    className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-300">
-                                    <div
-                                        className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤
-                                    </div>
+                                <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 border-2 border-indigo-300">
+                                    {match.matchProfile.profilePictureUrl ? (
+                                        <img
+                                            src={match.matchProfile.profilePictureUrl}
+                                            alt={match.matchProfile.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤</div>
+                                    )}
                                 </div>
+
                                 <div className="flex-1 min-w-0">
                                     <h2 className="text-xl font-bold text-gray-800 truncate">{match.matchProfile.name}</h2>
                                     <p className="text-sm text-gray-500 truncate">{match.matchProfile.bio || 'No bio provided.'}</p>

@@ -197,7 +197,7 @@ export const useConversations = () => {
         );
 
         return () => unsubscribe();
-    }, [currentUserId, fetchConversations]);
+    }, [currentUserId]);
 
     return {
         conversations,

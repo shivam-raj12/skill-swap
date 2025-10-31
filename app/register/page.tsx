@@ -66,7 +66,7 @@ const RegisterPage: React.FC = () => {
 
             await account.createEmailPasswordSession(email, password);
 
-            setSuccess('Success! We sent a verification link to your email. You will be redirected to the dashboard.');
+            setSuccess('Success! You will be redirected to the dashboard.');
 
 
             setTimeout(() => {
