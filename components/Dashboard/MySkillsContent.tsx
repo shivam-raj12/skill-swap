@@ -151,6 +151,7 @@ const SkillManager: React.FC<{
                 APPWRITE_DB_ID,
                 APPWRITE_PROFILES_COLLECTION_ID,
                 profileId,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 dataToUpdate as any
             );
 

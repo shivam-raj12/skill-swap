@@ -802,6 +802,7 @@ const MessagesContent: React.FC<MessagesContentProps> = ({initialChatData}) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             handleSendMessage(e as any);
         }
     };

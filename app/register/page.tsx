@@ -66,17 +66,13 @@ const RegisterPage: React.FC = () => {
 
             await account.createEmailPasswordSession(email, password);
 
-            await account.createVerification(
-                `${window.location.origin}/verify-email`
-            );
-
             setSuccess('Success! We sent a verification link to your email. You will be redirected to the dashboard.');
 
 
             setTimeout(() => {
                 router.push('/dashboard');
             }, 3000);
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
 
             const errorMessage = err?.message || 'An unknown error occurred during registration.';
@@ -123,7 +119,7 @@ const RegisterPage: React.FC = () => {
                         Join SkillSwap
                     </h2>
                     <p className="mt-2 text-center text-lg text-gray-600">
-                        Start trading knowledge today—it's fast and free!
+                        Start trading knowledge today—it&#39;s fast and free!
                     </p>
                 </div>
 

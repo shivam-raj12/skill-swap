@@ -80,7 +80,7 @@ const MeetingsContent: React.FC = () => {
                     Query.limit(1)
                 ]
             );
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (profile.documents[0] as any).name || `User ID: ${userId.substring(0, 4)}...`;
 
         } catch (e) {
@@ -108,7 +108,7 @@ const MeetingsContent: React.FC = () => {
                     Query.limit(100)
                 ]
             );
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const meetingsWithPartnerId: Omit<Meeting, 'partnerName'>[] = meetingsResponse.documents.map((doc: any) => {
                 const partnerId = doc.participants.find((id: string) => id !== currentUserId) || doc.participants[0];
                 return {

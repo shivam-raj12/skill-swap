@@ -63,7 +63,7 @@ const LoginPage: React.FC = () => {
             setTimeout(() => {
                 router.push('/dashboard');
             }, 1500);
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Appwrite Login Error:', err);
 
@@ -192,7 +192,7 @@ const LoginPage: React.FC = () => {
 
                 {/* Footer Link */}
                 <div className="text-center text-sm text-gray-600">
-                    Don't have an account yet? {' '}
+                    Don&#39;t have an account yet? {' '}
                     <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
                         Create an account here
                     </Link>

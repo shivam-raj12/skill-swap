@@ -77,7 +77,7 @@ const RecordingsPage: React.FC = () => {
             }
 
             return functionResponse.token;
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Appwrite Execution Error:', err);
             setError(`Authentication setup failed (Appwrite SDK): ${err.message}. Check CORS settings and Project ID.`);
@@ -104,7 +104,7 @@ const RecordingsPage: React.FC = () => {
                 throw new Error(rawData.message || 'Video SDK request failed. Check your Meeting ID and JWT.');
             }
 
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const processedRecordings: Recording[] = (rawData.data || []).map((item: any) => ({
                 id: item.id,
 
@@ -119,7 +119,7 @@ const RecordingsPage: React.FC = () => {
 
 
             setRecordings(processedRecordings);
-
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Recording Fetch Error:', err);
             setError(`Failed to load recordings for room ${roomId}. Error: ${err.message}`);
