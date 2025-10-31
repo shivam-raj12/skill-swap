@@ -133,6 +133,7 @@ export const useConversations = () => {
 
         const unsubscribe = client.subscribe(
             `databases.${APPWRITE_DB_ID}.collections.${APPWRITE_CONVERSATIONS_COLLECTION_ID}.documents`,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (response: any) => {
                 const updatedDoc = response.payload as ConversationDocument;
 
@@ -196,7 +197,7 @@ export const useConversations = () => {
         );
 
         return () => unsubscribe();
-    }, [currentUserId]);
+    }, [currentUserId, fetchConversations]);
 
     return {
         conversations,

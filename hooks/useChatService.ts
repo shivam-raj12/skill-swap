@@ -42,8 +42,8 @@ export const useChatService = (activeConversationId: string | null, receiverId: 
                     Query.limit(100)
                 ]
             );
-            setMessages(response.documents as MessageDocument[]);
-        } catch (err) {
+            setMessages(response.documents as unknown as MessageDocument[]);
+        } catch {
             setError('Failed to load messages.');
             setMessages([]);
         } finally {
@@ -60,6 +60,7 @@ export const useChatService = (activeConversationId: string | null, receiverId: 
 
         const unsubscribe = client.subscribe(
             `databases.${APPWRITE_DB_ID}.collections.${APPWRITE_MESSAGES_COLLECTION_ID}.documents`,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (response: any) => {
                 if (!response || !response.payload) return;
                 const newMessage = response.payload as MessageDocument;
@@ -96,7 +97,7 @@ export const useChatService = (activeConversationId: string | null, receiverId: 
                 }
             );
             setError(null);
-        } catch (err) {
+        } catch {
             setError('Failed to send message.');
         }
     }, [currentUserId, receiverId, activeConversationId]);

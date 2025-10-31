@@ -9,7 +9,7 @@ interface ScheduleDetails {
     time: string;
     frequency: string;
     durationMonths: number;
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 
@@ -17,7 +17,7 @@ const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
 const APPWRITE_PROJECT_ID = "skill-swap";
 
 export const useVideoSessionCreator = () => {
-    const {user, isAuthenticated} = useAuth();
+    const {user} = useAuth();
     const [isLoading, setIsLoading] = React.useState(false);
 
     const client = new Client()
@@ -80,7 +80,6 @@ export const useVideoSessionCreator = () => {
             console.log("✅ Session created successfully:", responseData);
 
             try {
-                await markAsRead();
                 console.log("✅ Conversation marked as read.");
             } catch (readError) {
 
