@@ -25,7 +25,6 @@ const RegisterPage: React.FC = () => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
 
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -60,8 +59,7 @@ const RegisterPage: React.FC = () => {
             await account.create(
                 ID.unique(),
                 email,
-                password,
-                name
+                password
             );
 
             await account.createEmailPasswordSession(email, password);
@@ -137,21 +135,6 @@ const RegisterPage: React.FC = () => {
 
                 <form className="mt-8 space-y-6" onSubmit={handleRegister}>
                     <div className="rounded-md shadow-sm space-y-4">
-
-                        {/* Name Input */}
-                        <div>
-                            <label htmlFor="name" className="sr-only">Full Name</label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                required
-                                placeholder="Your Full Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-lg transition duration-200"
-                            />
-                        </div>
 
                         <div>
                             <label htmlFor="email" className="sr-only">Email address</label>
