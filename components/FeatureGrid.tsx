@@ -50,7 +50,7 @@ const FeatureGrid: React.FC = () => {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {features.map((feature, index) => (
+                    {features.map((feature) => (
                         <div
                             key={feature.title}
                             className="flex flex-col items-center p-8 bg-white rounded-xl shadow-lg hover:shadow-2xl transition duration-500 ease-in-out transform hover:-translate-y-2 border border-gray-100"

@@ -18,12 +18,11 @@ interface MutualMatch {
 
 interface ActivityItem { id: string; text: string; time: string; }
 
-// --- Appwrite Setup & Helper Logic (REUSED) ---
 const client = new Client();
 client.setEndpoint(APPWRITE_CONFIG.endpoint).setProject(APPWRITE_CONFIG.projectId);
 const databases = new Databases(client);
 
-// Helper functions (REUSED)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const calculateProfileCompletion = (profile: any | null): number => {
     if (!profile) return 0;
     let completedSteps = 0;
@@ -115,8 +114,6 @@ const DashboardHomeContent: React.FC<{ onQuickNavigate: (viewId: string) => void
         isActivityLoading: boolean
     };
 
-    // State Hooks (SIMPLIFIED)
-    const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
     const [profile, setProfile] = useState<MatchProfile | null>(null);
     const [mainLoading, setMainLoading] = useState(true);
     const [completionPercentage, setCompletionPercentage] = useState(0);

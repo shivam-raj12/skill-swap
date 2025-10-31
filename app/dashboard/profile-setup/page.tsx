@@ -235,7 +235,7 @@ const ProfileSetupContent: React.FC = () => {
 
             if (response.documents.length > 0) {
                 const existingProfile = response.documents[0];
-                setProfile(existingProfile as ProfileData);
+                setProfile(existingProfile as unknown as ProfileData);
                 setFormData({
                     $id: existingProfile.$id,
                     name: existingProfile.name || '',
@@ -477,10 +477,17 @@ const ProfileSetupContent: React.FC = () => {
                                         Uploading...
                                     </div>
                                 ) : formData.profilePictureUrl ? (
-                                    <img src={formData.profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+                                    <Image
+                                        src={formData.profilePictureUrl}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover"
+                                        fill
+                                        sizes="100vw"
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤</div>
                                 )}
+
                             </div>
 
                             <div>

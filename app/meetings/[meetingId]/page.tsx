@@ -17,7 +17,7 @@ export default function MeetingSetupPage() {
     const params = useParams();
     const meetingIdFromUrl = params.meetingId as string;
 
-    const { user, isLoading: isAuthLoading } = useAuth();
+    const { user} = useAuth();
     const { userDetails, isLoading: isProfileLoading } = useUserDetails(user?.$id || null);
 
     const [token, setToken] = useState("");

@@ -136,7 +136,7 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
         } finally {
             setLoading(false);
         }
-    }, [user?.$id, isAuthLoading]);
+    }, [isAuthLoading, user]);
 
     useEffect(() => {
         if (!isAuthLoading) {
@@ -162,6 +162,7 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
             );
 
             const conversationExists = existingConversations.documents.some(doc =>
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (doc as any).ownerId === user.$id && (doc as any).otherUserId === recipientUserId
             );
 
@@ -229,10 +230,10 @@ const FindMatchContent: React.FC<FindMatchContentProps> = ({onStartSwap}) => {
                         className="mt-6 p-4 bg-indigo-100 border-l-4 border-indigo-500 rounded-xl shadow-md max-w-lg mx-auto flex items-start space-x-3">
                         <span className="text-indigo-600 text-2xl mt-1">📧</span>
                         <div>
-                            <p className="font-bold text-indigo-800">Don't worry, we'll keep looking!</p>
+                            <p className="font-bold text-indigo-800">Don&#39;t worry, we&#39;ll keep looking!</p>
                             <p className="text-sm text-indigo-700 mt-1">
                                 We will send you a notification email the moment a new mutual match is found, so you
-                                won't miss any opportunities.
+                                won&#39;t miss any opportunities.
                             </p>
                         </div>
                     </div>
