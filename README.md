@@ -1,3 +1,10 @@
+# Links
+
+🌐 **Website:** [Visit Live App](https://skill-swap.appwrite.network/)
+
+⚙️ **Functions:** [Appwrite Functions](https://github.com/shivam-raj12/SkillSwapFunctions)
+
+
 # 🧠 Skill Swap — Learn. Teach. Grow.
 
 > A collaborative platform built for the **Appwrite Hackathon**, enabling people to **exchange skills** with others around the world.
