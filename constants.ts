@@ -18,5 +18,5 @@ export const APPWRITE_CONVERSATIONS_COLLECTION_ID = 'conversations';
 export const APPWRITE_MESSAGES_COLLECTION_ID = 'messages';
 export const APPWRITE_ACTIVITIES_COLLECTION_ID = 'activity'
 export const APPWRITE_MEETINGS_COLLECTION_ID = 'meetings';
-
+export const APPWRITE_FUNCTION_ID="690384fe00078b781c5a"
 

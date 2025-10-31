@@ -1,5 +1,5 @@
 import React from "react";
-import { useMeetingValidation } from "../hooks/useMeetingValidation";
+import {useMeetingValidation} from "../hooks/useMeetingValidation";
 import Link from 'next/link';
 
 
@@ -87,7 +87,7 @@ const getScheduleDetails = (scheduleDetailsJson) => {
     }
 };
 
-const ProfileCircle = ({ name, url, isCurrent }) => {
+const ProfileCircle = ({name, url, isCurrent}) => {
     const initials = name ? name.split(' ').map(n => n[0]).join('') : 'U';
 
     const borderColor = isCurrent ? 'border-emerald-400' : 'border-indigo-400';
@@ -95,9 +95,10 @@ const ProfileCircle = ({ name, url, isCurrent }) => {
     const glow = isCurrent ? 'shadow-emerald-500/50' : 'shadow-lg';
 
     return (
-        <div className={`relative h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${borderThickness} ${borderColor} ${glow} overflow-hidden bg-gray-600`}>
+        <div
+            className={`relative h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${borderThickness} ${borderColor} ${glow} overflow-hidden bg-gray-600`}>
             {url ? (
-                <img src={url} alt={`${name}'s profile`} className="h-full w-full object-cover" />
+                <img src={url} alt={`${name}'s profile`} className="h-full w-full object-cover"/>
             ) : (
                 <span className="text-lg">{initials}</span>
             )}
@@ -109,6 +110,7 @@ const ProfileCircle = ({ name, url, isCurrent }) => {
 export function MeetingDetailsScreen({
                                          onClickJoin,
                                          meetingId: initialMeetingId,
+                                         isJoining
                                      }) {
     const {
         meetingData,
@@ -142,11 +144,23 @@ export function MeetingDetailsScreen({
 
         if (status !== 'loaded') {
             const messageMap = {
-                'not_found': { icon: '🚫', title: 'Meeting Not Found', subtitle: 'The meeting code is invalid or the session has been canceled.' },
-                'error': { icon: '⚠️', title: 'Connection Error', subtitle: 'Could not fetch data from the database. Please check your network.' },
-                'unauthorized': { icon: '🔒', title: 'Access Restricted', subtitle: 'This meeting is private. You are not listed as an approved participant for this session.' },
+                'not_found': {
+                    icon: '🚫',
+                    title: 'Meeting Not Found',
+                    subtitle: 'The meeting code is invalid or the session has been canceled.'
+                },
+                'error': {
+                    icon: '⚠️',
+                    title: 'Connection Error',
+                    subtitle: 'Could not fetch data from the database. Please check your network.'
+                },
+                'unauthorized': {
+                    icon: '🔒',
+                    title: 'Access Restricted',
+                    subtitle: 'This meeting is private. You are not listed as an approved participant for this session.'
+                },
             };
-            const error = messageMap[status] || { icon: '❓', title: 'Error', subtitle: 'An unknown error occurred.' };
+            const error = messageMap[status] || {icon: '❓', title: 'Error', subtitle: 'An unknown error occurred.'};
 
             return (
                 <div className="text-center p-8 bg-red-900/40 rounded-2xl border border-red-500/50 shadow-lg space-y-4">
@@ -209,8 +223,10 @@ export function MeetingDetailsScreen({
                     <div className="flex flex-col space-y-4">
 
                         {/* Current User (Dominant Style with Glow) */}
-                        <div className="flex items-center space-x-4 p-3 rounded-xl bg-gray-600/70 ring-2 ring-emerald-500 shadow-xl shadow-emerald-500/20">
-                            <ProfileCircle name={currentProfile?.name} url={currentProfile?.profilePictureUrl} isCurrent={true} />
+                        <div
+                            className="flex items-center space-x-4 p-3 rounded-xl bg-gray-600/70 ring-2 ring-emerald-500 shadow-xl shadow-emerald-500/20">
+                            <ProfileCircle name={currentProfile?.name} url={currentProfile?.profilePictureUrl}
+                                           isCurrent={true}/>
                             <div>
                                 <p className="text-white font-black leading-tight text-xl">
                                     {currentProfile?.name || "Loading Name..."}
@@ -223,7 +239,8 @@ export function MeetingDetailsScreen({
 
                         {/* Partner */}
                         <div className="flex items-center space-x-4 pt-4 border-t border-gray-600">
-                            <ProfileCircle name={partnerProfile?.name} url={partnerProfile?.profilePictureUrl} isCurrent={false} />
+                            <ProfileCircle name={partnerProfile?.name} url={partnerProfile?.profilePictureUrl}
+                                           isCurrent={false}/>
                             <div>
                                 <p className="text-white font-bold leading-tight">Partner</p>
                                 <p className="text-indigo-400 text-base">{partnerProfile?.name || "Loading Name..."}</p>
@@ -232,18 +249,41 @@ export function MeetingDetailsScreen({
                     </div>
                 </div>
 
-                {/* Join Button */}
                 <button
                     onClick={handleJoin}
-                    disabled={!isJoinEnabled}
+                    disabled={!isJoinEnabled || isJoining}
                     className={`w-full text-white px-2 py-3 rounded-xl font-bold transition duration-300 transform ${
-                        isJoinEnabled
-                            ? "bg-indigo-600 shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 hover:scale-[1.01]"
-                            : "bg-gray-600 cursor-not-allowed opacity-70"
+                        !isJoinEnabled || isJoining
+                            ? "bg-gray-600 cursor-not-allowed opacity-70"
+                            : "bg-indigo-600 shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 hover:scale-[1.01]"
                     }`}
                 >
-                    {isJoinEnabled ? "Join Session Now" : disabledButtonText}
+                    {isJoining ? (
+                        <svg
+                            className="animate-spin h-5 w-5 text-white mx-auto"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            ></circle>
+                            <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A7.96 7.96 0 014 12H0c0 3.04 1.13 5.82 3 7.94l3-2.65z"
+                            ></path>
+                        </svg>
+                    ) : (
+                        isJoinEnabled ? "Join Session Now" : disabledButtonText
+                    )}
                 </button>
+
             </div>
         );
     };

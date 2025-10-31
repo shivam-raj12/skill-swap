@@ -1,46 +1,30 @@
-const API_BASE_URL = "https://api.videosdk.live";
-const VIDEOSDK_TOKEN = process.env.NEXT_PUBLIC_VIDEOSDK_TOKEN || process.env.REACT_APP_VIDEOSDK_TOKEN;
-const API_AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || process.env.REACT_APP_AUTH_URL;
+import { Client, Functions } from "appwrite";
+import {
+    APPWRITE_CONFIG,
+    APPWRITE_FUNCTION_ID,
+} from "@/constants";
+
+const client = new Client()
+    .setEndpoint(APPWRITE_CONFIG.endpoint)
+    .setProject(APPWRITE_CONFIG.projectId);
+
+const functions = new Functions(client);
 
 export const getToken = async () => {
-  if (VIDEOSDK_TOKEN && API_AUTH_URL) {
-    console.error(
-      "Error: Provide only ONE PARAMETER - either Token or Auth API"
-    );
-  } else if (VIDEOSDK_TOKEN) {
-    return VIDEOSDK_TOKEN;
-  } else if (API_AUTH_URL) {
-    const res = await fetch(`${API_AUTH_URL}/get-token`, {
-      method: "GET",
-    });
-    const { token } = await res.json();
-    return token;
-  } else {
-    console.error("Error: ", Error("Please add a token or Auth Server URL"));
-  }
-};
+    try {
+        const response = await functions.createExecution(
+            APPWRITE_FUNCTION_ID,
+            '',
+            false
+        );
 
-export const validateMeeting = async ({ roomId, token }) => {
-  const url = `${API_BASE_URL}/v2/rooms/validate/${roomId}`;
+        const data = JSON.parse(response.responseBody);
 
-  const options = {
-    method: "GET",
-    headers: { Authorization: token, "Content-Type": "application/json" },
-  };
+        if (!data.token) throw new Error("Token not found in function response");
 
-  const response = await fetch(url, options)
-
-  if (response.status === 400) {
-    const data = await response.text()
-    return { meetingId: null, err: data }
-  }
-
-  const data = await response.json()
-
-  if (data.roomId) {
-    return { meetingId: data.roomId, err: null }
-  } else {
-    return { meetingId: null, err: data.error }
-  }
-
+        return data.token;
+    } catch (err) {
+        console.error("Error fetching token from Appwrite function:", err);
+        return null;
+    }
 };

@@ -61,6 +61,7 @@ export function JoiningScreen({
     const [audioTrack, setAudioTrack] = useState(null);
     const [videoTrack, setVideoTrack] = useState(null);
     const [dlgMuted, setDlgMuted] = useState(false);
+    const [isJoining, setIsJoining] = useState(false);
     const [dlgDevices, setDlgDevices] = useState(false);
     const [didDeviceChange, setDidDeviceChange] = useState(false);
     const [testSpeaker, setTestSpeaker] = useState(false)
@@ -532,11 +533,19 @@ export function JoiningScreen({
                                         meetingId={meetingId}
                                         onClickStartMeeting={onClickStartMeeting}
                                         onClickJoin={async (id) => {
-                                            const token = await getToken();
-                                            setToken(token);
-                                            setMeetingId(id);
-                                            onClickStartMeeting();
+                                            setIsJoining(true);
+                                            try {
+                                                const token = await getToken();
+                                                setToken(token);
+                                                setMeetingId(id);
+                                                await onClickStartMeeting();
+                                            } catch (err) {
+                                                console.error("Join failed:", err);
+                                            } finally {
+                                                setIsJoining(false);
+                                            }
                                         }}
+                                        isJoining={isJoining}
                                     />
                                 </div>
                             </div>
