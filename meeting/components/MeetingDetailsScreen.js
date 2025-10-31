@@ -3,41 +3,25 @@ import { useMeetingValidation } from "../hooks/useMeetingValidation";
 import Link from 'next/link';
 
 
-/**
- * Checks if the current time is past the scheduled start time of the meeting.
- */
 const isTimePastScheduledStart = (scheduleDetailsJson) => {
     try {
         const details = JSON.parse(scheduleDetailsJson);
 
-        if (!details.utcTime || !details.startDate) {
-            // If essential details are missing, default to allowing join if other validation passes,
-            // or you could default to false for maximum caution. We'll be cautious.
+        if (!details.startDate) {
             return false;
         }
 
-        // 1. Get the scheduled start time in UTC
-        // Format: "YYYY-MM-DDTUTC_TIME:00.000Z"
-        const scheduledUtcTime = new Date(`${details.startDate}T${details.utcTime}:00.000Z`);
+        const scheduledStartDate = new Date(`${details.startDate}T00:00:00.000Z`);
 
-        // 2. Get the current time
         const currentTime = new Date();
 
-        // 3. Compare: Return true if the current time is LATER THAN the scheduled time.
-        // I will allow a 5-minute buffer before the start time for a better user experience.
-        // A 5-minute buffer is 5 * 60 * 1000 milliseconds.
-        const bufferInMinutes = 5;
-        const bufferedScheduledTime = scheduledUtcTime.getTime() - (bufferInMinutes * 60 * 1000);
-
-        // Check if current time is after the buffered scheduled time
-        return currentTime.getTime() >= bufferedScheduledTime;
+        return currentTime.getTime() >= scheduledStartDate.getTime();
 
     } catch (e) {
-        console.error('Error checking join time:', e);
+        console.error('Error checking join time by date:', e);
         return false; // Safely prevent joining on error
     }
 };
-// ---------------------------------------------
 
 
 const getScheduleDetails = (scheduleDetailsJson) => {
@@ -51,13 +35,11 @@ const getScheduleDetails = (scheduleDetailsJson) => {
                 return details.time || 'Time TBD';
             }
 
-            // Construct UTC ISO string: e.g., "2025-11-01T10:00:00.000Z"
             const utcDateTimeString = `${details.startDate}T${details.utcTime}:00.000Z`;
 
 
             const localTimeDate = new Date(utcDateTimeString);
 
-            // Check if the date object is valid
             if (isNaN(localTimeDate.getTime())) {
                 console.error("Invalid Date object created in formatTimeWithTimezone");
                 return details.time || 'Time TBD';
@@ -75,17 +57,13 @@ const getScheduleDetails = (scheduleDetailsJson) => {
             );
         };
 
-        // --- START DATE FIX (from previous request) ---
-        // Create a date object from the YYYY-MM-DD string
         const dateObj = new Date(details.startDate + 'T00:00:00');
 
-        // Format the date for better readability (e.g., "Nov 1, 2025")
         const formattedDate = dateObj.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
-        // --- END DATE FIX ---
 
 
         return (
@@ -142,12 +120,10 @@ export function MeetingDetailsScreen({
     } = useMeetingValidation(initialMeetingId);
 
     const handleJoin = () => {
-        // Double-check the time before joining
         if (status === 'loaded' && currentProfile?.name && isTimePastScheduledStart(meetingData.scheduleDetails)) {
             onClickJoin(meetingData.meetingId, currentProfile.name);
         } else {
-            // Optional: Show a message if they try to join too early
-            alert("The session hasn't started yet! You can join up to 5 minutes before the scheduled time.");
+            alert("The scheduled start date for this session hasn't arrived yet!");
         }
     };
 
@@ -195,22 +171,19 @@ export function MeetingDetailsScreen({
             );
         }
 
-        // --- NEW JOIN ENABLE LOGIC ---
         const canJoinByProfile = !!currentProfile?.name;
-        let isTimeReady = false;
+        let isTimeReady = true;
 
         if (meetingData?.scheduleDetails) {
             isTimeReady = isTimePastScheduledStart(meetingData.scheduleDetails);
         }
 
         const isJoinEnabled = canJoinByProfile && isTimeReady;
-        // -----------------------------
 
         const statusText = meetingData?.status === "ONGOING" ? "Live Now" : "Scheduled";
         const statusColor = meetingData?.status === "ONGOING" ? "bg-red-500" : "bg-emerald-500";
 
-        // Button text when disabled by time
-        const disabledButtonText = "Too Early to Join";
+        const disabledButtonText = "Scheduled Date Not Reached";
 
 
         const partnerId = meetingData.participants.find(id => id !== currentUserId);

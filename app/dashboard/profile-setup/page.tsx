@@ -14,7 +14,6 @@ import {
 } from '@/constants';
 import { SKILL_HIERARCHY } from '@/constants/skills';
 import Link from 'next/link';
-import Image from "next/image";
 
 const client = new Client();
 client
@@ -477,12 +476,11 @@ const ProfileSetupContent: React.FC = () => {
                                         Uploading...
                                     </div>
                                 ) : formData.profilePictureUrl ? (
-                                    <Image
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
                                         src={formData.profilePictureUrl}
                                         alt="Profile"
                                         className="w-full h-full object-cover"
-                                        fill
-                                        sizes="100vw"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-500 text-3xl">👤</div>
